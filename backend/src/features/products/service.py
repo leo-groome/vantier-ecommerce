@@ -102,3 +102,64 @@ async def get_product(db: AsyncSession, product_id: uuid.UUID) -> Product:
     if product is None:
         raise NotFoundException(f"Product {product_id} not found")
     return product
+
+
+async def create_product(db: AsyncSession, data: ProductCreate) -> Product:
+    """Create a new product with no variants.
+
+    Args:
+        db: Async database session.
+        data: Validated product creation payload.
+
+    Returns:
+        Newly created Product ORM instance with variants loaded (empty list).
+    """
+    product = Product(line=data.line, name=data.name, description=data.description)
+    db.add(product)
+    await db.flush()
+
+    # Reload with relationships so response is fully populated
+    result = await db.execute(
+        select(Product)
+        .options(_with_variants_and_images())
+        .where(Product.id == product.id)
+    )
+    return result.scalar_one()
+
+
+async def update_product(
+    db: AsyncSession, product_id: uuid.UUID, data: ProductUpdate
+) -> Product:
+    """Partially update a product's mutable fields.
+
+    Args:
+        db: Async database session.
+        product_id: UUID of the product to update.
+        data: Fields to update (None fields are ignored).
+
+    Returns:
+        Updated Product ORM instance.
+
+    Raises:
+        NotFoundException: If product does not exist.
+    """
+    product = await get_product(db, product_id)
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(product, field, value)
+    await db.flush()
+    return product
+
+
+async def deactivate_product(db: AsyncSession, product_id: uuid.UUID) -> None:
+    """Soft-delete a product by setting is_active=False.
+
+    Args:
+        db: Async database session.
+        product_id: UUID of the product to deactivate.
+
+    Raises:
+        NotFoundException: If product does not exist.
+    """
+    product = await get_product(db, product_id)
+    product.is_active = False
+    await db.flush()

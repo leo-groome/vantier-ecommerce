@@ -84,3 +84,43 @@ async def test_get_product_found(db_session: AsyncSession):
 async def test_get_product_not_found(db_session: AsyncSession):
     with pytest.raises(NotFoundException):
         await service.get_product(db_session, uuid.uuid4())
+
+
+# ── Product write tests ──────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_create_product(db_session: AsyncSession):
+    from src.features.products.schemas import ProductCreate
+    data = ProductCreate(line="signature", name="New Signature Polo")
+    product = await service.create_product(db_session, data)
+
+    assert product.id is not None
+    assert product.name == "New Signature Polo"
+    assert product.line == "signature"
+    assert product.is_active is True
+    assert product.variants == []
+
+
+@pytest.mark.asyncio
+async def test_update_product_name(db_session: AsyncSession):
+    from src.features.products.schemas import ProductUpdate
+    product = await _create_test_product(db_session)
+    updated = await service.update_product(db_session, product.id, ProductUpdate(name="Updated Name"))
+    assert updated.name == "Updated Name"
+
+
+@pytest.mark.asyncio
+async def test_update_product_not_found(db_session: AsyncSession):
+    from src.features.products.schemas import ProductUpdate
+    with pytest.raises(NotFoundException):
+        await service.update_product(db_session, uuid.uuid4(), ProductUpdate(name="X"))
+
+
+@pytest.mark.asyncio
+async def test_deactivate_product(db_session: AsyncSession):
+    product = await _create_test_product(db_session)
+    await service.deactivate_product(db_session, product.id)
+
+    result = await service.get_product(db_session, product.id)
+    assert result.is_active is False
