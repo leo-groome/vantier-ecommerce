@@ -4,6 +4,11 @@ export const checkoutRoutes: RouteRecordRaw[] = [
   {
     path: '/checkout',
     component: () => import('./components/CheckoutPage.vue'),
-    meta: { requireAuth: true, requireCart: true },
+    meta: { requireCart: true },
+  },
+  {
+    path: '/order-confirm/:orderId',
+    component: () => import('./components/OrderConfirmPage.vue'),
+    meta: { robots: 'noindex' },
   },
 ]
