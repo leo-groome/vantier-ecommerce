@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import HeroCarousel from '../components/HeroCarousel.vue'
 import ProductLineGrid from '../components/ProductLineGrid.vue'
+import FeaturedProducts from '../components/FeaturedProducts.vue'
 import BrandStatement from '../components/BrandStatement.vue'
 import SeoHead from '@shared/components/SeoHead.vue'
 </script>
@@ -12,5 +13,6 @@ import SeoHead from '@shared/components/SeoHead.vue'
   />
   <HeroCarousel />
   <ProductLineGrid />
+  <FeaturedProducts />
   <BrandStatement />
 </template>

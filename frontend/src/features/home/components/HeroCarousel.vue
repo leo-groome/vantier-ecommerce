@@ -64,14 +64,14 @@ const next = () => current.value = (current.value + 1) % slides.length
       <button @click="next" aria-label="Next slide" class="text-white/60 hover:text-white transition-colors duration-[var(--duration-fast)] text-[length:var(--text-small)] uppercase tracking-[var(--tracking-label)]">Next</button>
     </div>
 
-    <!-- Slide transition styles -->
-    <style scoped>
-    .hero-slide-enter-active,
-    .hero-slide-leave-active {
-      transition: opacity var(--duration-cinematic) var(--ease-luxury);
-    }
-    .hero-slide-enter-from,
-    .hero-slide-leave-to { opacity: 0; }
-    </style>
   </section>
 </template>
+
+<style scoped>
+.hero-slide-enter-active,
+.hero-slide-leave-active {
+  transition: opacity var(--duration-cinematic) var(--ease-luxury);
+}
+.hero-slide-enter-from,
+.hero-slide-leave-to { opacity: 0; }
+</style>

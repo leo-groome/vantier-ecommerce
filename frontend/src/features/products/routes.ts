@@ -7,6 +7,6 @@ export const productRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/shop/:id',
-    component: () => import('./components/ProductsPage.vue'), // detail — stub for now
+    component: () => import('./components/ProductDetailPage.vue'),
   },
 ]

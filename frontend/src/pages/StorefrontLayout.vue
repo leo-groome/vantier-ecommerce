@@ -1,11 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useCartStore } from '@features/cart/store'
 import CartDrawer from '@features/cart/components/CartDrawer.vue'
+import ToastContainer from '@shared/components/ToastContainer.vue'
 
+const route = useRoute()
 const cart = useCartStore()
 const mobileMenuOpen = ref(false)
 const cartOpen = ref(false)
+
+// Close mobile menu on route change
+watch(() => route.path, () => { mobileMenuOpen.value = false })
+
+const navLinks = [
+  { to: '/', label: 'Home' },
+  { to: '/shop', label: 'Shop' },
+  { to: '/about', label: 'About' },
+]
 </script>
 <template>
   <div class="min-h-screen flex flex-col bg-[color:var(--color-surface)] text-[color:var(--color-on-surface)]">
@@ -20,10 +32,10 @@ const cartOpen = ref(false)
           Vantier
         </RouterLink>
 
-        <!-- Nav links -->
+        <!-- Desktop nav links -->
         <nav class="hidden md:flex items-center gap-8" aria-label="Main navigation">
           <RouterLink
-            v-for="link in [{ to: '/', label: 'Home' }, { to: '/shop', label: 'Shop' }, { to: '/about', label: 'About' }]"
+            v-for="link in navLinks"
             :key="link.to"
             :to="link.to"
             class="text-[length:var(--text-small)] font-medium uppercase tracking-[var(--tracking-label)] relative after:absolute after:bottom-0 after:left-0 after:h-px after:bg-current after:transition-[width] after:duration-[var(--duration-normal)] after:ease-[var(--ease-out-expo)] hover:after:w-full"
@@ -34,7 +46,7 @@ const cartOpen = ref(false)
         </nav>
 
         <!-- Right actions -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1">
           <!-- Cart icon -->
           <button class="relative p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]" aria-label="Open cart" @click="cartOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -50,8 +62,46 @@ const cartOpen = ref(false)
               </span>
             </Transition>
           </button>
+
+          <!-- Hamburger (mobile only) -->
+          <button
+            class="md:hidden p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]"
+            :aria-label="mobileMenuOpen ? 'Close menu' : 'Open menu'"
+            :aria-expanded="mobileMenuOpen"
+            @click="mobileMenuOpen = !mobileMenuOpen"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <Transition name="hamburger" mode="out-in">
+                <g v-if="!mobileMenuOpen" key="open">
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </g>
+                <g v-else key="close">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </g>
+              </Transition>
+            </svg>
+          </button>
         </div>
       </div>
+
+      <!-- Mobile menu overlay -->
+      <Transition name="mobile-menu">
+        <nav
+          v-if="mobileMenuOpen"
+          class="md:hidden border-t border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-[var(--spacing-container)] py-6 flex flex-col gap-5"
+          aria-label="Mobile navigation"
+        >
+          <RouterLink
+            v-for="link in navLinks"
+            :key="link.to"
+            :to="link.to"
+            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-on-surface)] hover:opacity-60 transition-opacity duration-[var(--duration-fast)]"
+            :class="{ 'opacity-40': $route.path !== link.to }"
+          >
+            {{ link.label }}
+          </RouterLink>
+        </nav>
+      </Transition>
     </header>
 
     <!-- Main content -->
@@ -75,15 +125,25 @@ const cartOpen = ref(false)
     </footer>
   </div>
 
-  <!-- Badge pop animation -->
-  <style>
-  .badge-pop-enter-active { transition: transform var(--duration-normal) var(--ease-out-expo); }
-  .badge-pop-enter-from { transform: scale(1.4); }
-  .badge-pop-enter-to { transform: scale(1); }
-  </style>
-
-  <!-- Cart Drawer (teleported to body to escape stacking contexts) -->
+  <!-- Cart Drawer -->
   <Teleport to="body">
     <CartDrawer :open="cartOpen" @close="cartOpen = false" />
   </Teleport>
+
+  <!-- Toast notifications -->
+  <ToastContainer />
 </template>
+
+<style>
+.badge-pop-enter-active { transition: transform var(--duration-normal) var(--ease-out-expo); }
+.badge-pop-enter-from { transform: scale(1.4); }
+.badge-pop-enter-to { transform: scale(1); }
+
+.mobile-menu-enter-active { transition: opacity var(--duration-normal) ease, transform var(--duration-normal) var(--ease-out-expo); }
+.mobile-menu-leave-active { transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease; }
+.mobile-menu-enter-from { opacity: 0; transform: translateY(-8px); }
+.mobile-menu-leave-to  { opacity: 0; transform: translateY(-4px); }
+
+.hamburger-enter-active, .hamburger-leave-active { transition: opacity var(--duration-fast) ease; }
+.hamburger-enter-from, .hamburger-leave-to { opacity: 0; }
+</style>

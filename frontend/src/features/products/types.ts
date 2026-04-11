@@ -19,6 +19,7 @@ export interface Product {
   line: 'Polo Atelier' | 'Signature' | 'Essential'
   style: 'Classic' | 'Design'
   priceUSD: number
+  description?: string
   images: ProductImage[]
   variants: ProductVariant[]
 }
