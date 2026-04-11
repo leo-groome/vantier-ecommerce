@@ -1,6 +1,8 @@
 """Shared pytest fixtures for Vantier backend tests."""
 
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
+import uuid
 
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -22,18 +24,23 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     session = AsyncSession(bind=connection, expire_on_commit=False, autoflush=False)
     yield session
 
-    await session.close()
-    await transaction.rollback()
-    await connection.close()
+    try:
+        await session.close()
+    finally:
+        await transaction.rollback()
+        await connection.close()
 
 
 def _make_admin(role: str = "operative") -> AdminUser:
-    admin = AdminUser.__new__(AdminUser)
-    admin.id = None
-    admin.neon_auth_user_id = f"test-{role}-id"
-    admin.email = f"{role}@test.com"
-    admin.role = role
-    admin.is_active = True
+    admin = AdminUser(
+        id=uuid.uuid4(),
+        neon_auth_user_id=f"test-{role}-id",
+        email=f"{role}@test.com",
+        role=role,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
     return admin
 
 
