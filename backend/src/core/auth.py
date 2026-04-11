@@ -3,22 +3,54 @@
 On first call, fetches the public key set from Neon Auth's JWKS URL and
 caches it in memory. Keys are refreshed automatically on verification failure
 (handles key rotation).
+
+Neon Auth uses EdDSA (Ed25519 / OKP key type) — PyJWT is used instead of
+python-jose because jose 3.x does not support OKP keys.
 """
 
+import base64
 import logging
 from typing import Any
 
 import httpx
-from jose import JWTError, jwt
-from jose.backends import RSAKey
+import jwt
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from src.core.config import get_settings
 from src.core.exceptions import UnauthorizedException
 
 logger = logging.getLogger(__name__)
 
-# Module-level JWKS cache: maps kid → public key
+# Module-level JWKS cache: maps kid → public key object (Ed25519PublicKey or RSAPublicKey)
 _jwks_cache: dict[str, Any] = {}
+
+
+def _load_jwk(key_data: dict[str, Any]) -> Any:
+    """Convert a JWK dict to a cryptography public key object.
+
+    Args:
+        key_data: A single JWK entry from the JWKS endpoint.
+
+    Returns:
+        A cryptography public key suitable for jwt.decode().
+
+    Raises:
+        ValueError: If the key type is unsupported.
+    """
+    kty = key_data.get("kty")
+
+    if kty == "OKP":
+        # Ed25519 — base64url-decode the 'x' coordinate
+        x_bytes = base64.urlsafe_b64decode(key_data["x"] + "==")
+        return Ed25519PublicKey.from_public_bytes(x_bytes)
+
+    if kty == "RSA":
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+        from jwt.algorithms import RSAAlgorithm
+
+        return RSAAlgorithm.from_jwk(key_data)
+
+    raise ValueError(f"Unsupported JWK key type: {kty!r}")
 
 
 async def _fetch_jwks() -> None:
@@ -32,9 +64,10 @@ async def _fetch_jwks() -> None:
     _jwks_cache.clear()
     for key_data in data.get("keys", []):
         kid = key_data.get("kid", "default")
-        # Construct a concrete RSAKey so jwt.decode cannot fall back to
-        # symmetric verification (protects against algorithm confusion attacks).
-        _jwks_cache[kid] = RSAKey(key_data, algorithm="RS256")
+        try:
+            _jwks_cache[kid] = _load_jwk(key_data)
+        except (ValueError, KeyError) as exc:
+            logger.warning("Skipping unsupported JWK kid=%s: %s", kid, exc)
 
     logger.info("JWKS refreshed, %d key(s) loaded", len(_jwks_cache))
 
@@ -57,30 +90,35 @@ async def verify_token(token: str) -> dict[str, Any]:
     if not _jwks_cache:
         await _fetch_jwks()
 
-    # Try to decode header to pick the right key
+    # Decode header without verification to pick the right cached key
     try:
         unverified_header = jwt.get_unverified_header(token)
-    except JWTError:
+    except jwt.exceptions.DecodeError:
         raise UnauthorizedException("Invalid token format")
 
     kid = unverified_header.get("kid", "default")
-    key_data = _jwks_cache.get(kid)
+    alg = unverified_header.get("alg", "EdDSA")
+    pub_key = _jwks_cache.get(kid)
 
-    if key_data is None:
-        # Key not in cache — refresh once and retry
+    if pub_key is None:
+        # Key not in cache — refresh once and retry (handles key rotation)
         await _fetch_jwks()
-        key_data = _jwks_cache.get(kid)
-        if key_data is None:
+        pub_key = _jwks_cache.get(kid)
+        if pub_key is None:
             raise UnauthorizedException("Unknown signing key")
 
     try:
-        payload = jwt.decode(
+        payload: dict[str, Any] = jwt.decode(
             token,
-            key_data,
-            algorithms=["RS256"],
+            pub_key,
+            algorithms=[alg],
             audience=settings.neon_auth_audience,
         )
-    except JWTError as exc:
+    except jwt.ExpiredSignatureError:
+        raise UnauthorizedException("Token has expired")
+    except jwt.InvalidAudienceError:
+        raise UnauthorizedException("Invalid token audience")
+    except jwt.PyJWTError as exc:
         raise UnauthorizedException(f"Token verification failed: {exc}") from exc
 
     return payload
