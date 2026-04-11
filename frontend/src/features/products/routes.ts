@@ -2,11 +2,11 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export const productRoutes: RouteRecordRaw[] = [
   {
-    path: '/products',
-    component: () => import('./components/ProductsPage.vue'),
+    path: '/shop',
+    component: () => import('./components/CatalogPage.vue'),
   },
   {
-    path: '/products/:id',
-    component: () => import('./components/ProductsPage.vue'),
+    path: '/shop/:id',
+    component: () => import('./components/ProductsPage.vue'), // detail — stub for now
   },
 ]
