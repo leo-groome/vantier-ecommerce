@@ -32,7 +32,7 @@ export function applyRouteGuards(
   if (meta.requireAdmin) {
     const role = getUserRole()
     if (!role || !['Owner', 'Operative'].includes(role)) {
-      next({ path: '/auth/login' })
+      next({ path: '/auth/login', query: { redirect: to.fullPath } })
       return
     }
   }
