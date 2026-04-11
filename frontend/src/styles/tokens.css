@@ -1,0 +1,54 @@
+/* Vantier Design Tokens — Silent Luxury */
+@theme {
+  --color-obsidian:      oklch(8% 0.005 250);
+  --color-ivory:         oklch(97% 0.003 90);
+  --color-warm-beige:    oklch(88% 0.018 80);
+  --color-warm-beige-dk: oklch(80% 0.022 75);
+  --color-midnight:      oklch(22% 0.045 260);
+  --color-midnight-lt:   oklch(30% 0.055 260);
+  --color-amber-accent:  oklch(72% 0.165 55);
+  --color-amber-dim:     oklch(62% 0.140 55);
+
+  --color-surface:       var(--color-ivory);
+  --color-surface-alt:   var(--color-warm-beige);
+  --color-on-surface:    var(--color-obsidian);
+  --color-border:        oklch(85% 0.008 80);
+  --color-border-strong: oklch(70% 0.012 80);
+
+  --color-success: oklch(55% 0.13 155);
+  --color-warning: oklch(75% 0.14 75);
+  --color-error:   oklch(55% 0.18 25);
+
+  --font-sans:      'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: 'Playfair Display', Georgia, serif;
+
+  --text-display:  clamp(2.5rem, 5vw + 1rem, 5rem);
+  --text-headline: clamp(1.75rem, 3vw + 0.5rem, 3rem);
+  --text-title:    clamp(1.25rem, 2vw + 0.25rem, 1.75rem);
+  --text-body:     1rem;
+  --text-small:    0.875rem;
+  --text-micro:    0.75rem;
+
+  --tracking-display:  0.18em;
+  --tracking-headline: 0.12em;
+  --tracking-label:    0.08em;
+
+  --spacing-section:   clamp(4rem, 8vw, 8rem);
+  --spacing-container: clamp(1.5rem, 5vw, 6rem);
+  --spacing-card-gap:  clamp(1.5rem, 3vw, 2.5rem);
+  --container-max:     1440px;
+
+  --radius-none: 0;
+  --radius-sm:   2px;
+  --radius-md:   4px;
+  --radius-lg:   8px;
+  --radius-pill: 9999px;
+
+  --duration-fast:      150ms;
+  --duration-normal:    250ms;
+  --duration-slow:      400ms;
+  --duration-cinematic: 600ms;
+  --ease-out-expo:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-luxury:        cubic-bezier(0.25, 0.1, 0.1, 1);
+  --ease-in-out-sin:    cubic-bezier(0.37, 0, 0.63, 1);
+}
