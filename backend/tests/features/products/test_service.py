@@ -124,3 +124,106 @@ async def test_deactivate_product(db_session: AsyncSession):
 
     result = await service.get_product(db_session, product.id)
     assert result.is_active is False
+
+
+# ── Variant and image tests ───────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_add_variant_generates_sku(db_session: AsyncSession):
+    from src.features.products.schemas import ProductCreate, VariantCreate
+    product = await service.create_product(db_session, ProductCreate(line="essential", name="E Polo"))
+    data = VariantCreate(
+        style="design",
+        size="L",
+        color="White",
+        cost_acquisition_usd=Decimal("40.00"),
+        price_usd=Decimal("100.00"),
+    )
+    variant = await service.add_variant(db_session, product.id, data)
+
+    assert variant.sku.startswith("VAT-ES-DS-L-WHITE-")
+    assert variant.barcode == variant.sku
+    assert variant.stock_qty == 0
+
+
+@pytest.mark.asyncio
+async def test_add_variant_product_not_found(db_session: AsyncSession):
+    from src.features.products.schemas import VariantCreate
+    data = VariantCreate(
+        style="classic", size="S", color="Red",
+        cost_acquisition_usd=Decimal("30.00"), price_usd=Decimal("80.00"),
+    )
+    with pytest.raises(NotFoundException):
+        await service.add_variant(db_session, uuid.uuid4(), data)
+
+
+@pytest.mark.asyncio
+async def test_update_variant(db_session: AsyncSession):
+    from src.features.products.schemas import VariantUpdate
+    product = await _create_test_product(db_session)
+    fetched = await service.get_product(db_session, product.id)
+    variant_id = fetched.variants[0].id
+
+    updated = await service.update_variant(db_session, variant_id, VariantUpdate(color="Navy"))
+    assert updated.color == "Navy"
+
+
+@pytest.mark.asyncio
+async def test_deactivate_variant(db_session: AsyncSession):
+    product = await _create_test_product(db_session)
+    fetched = await service.get_product(db_session, product.id)
+    variant_id = fetched.variants[0].id
+
+    await service.deactivate_variant(db_session, variant_id)
+
+    from sqlalchemy import select as sa_select
+    from src.features.products.models import ProductVariant as PV
+    result = await db_session.execute(sa_select(PV).where(PV.id == variant_id))
+    assert result.scalar_one().is_active is False
+
+
+@pytest.mark.asyncio
+async def test_add_image(db_session: AsyncSession):
+    from src.features.products.schemas import ImageCreate
+    product = await _create_test_product(db_session)
+    fetched = await service.get_product(db_session, product.id)
+    variant_id = fetched.variants[0].id
+
+    image = await service.add_image(
+        db_session, variant_id, ImageCreate(url="https://cdn.test/new.jpg", position=1)
+    )
+    assert image.url == "https://cdn.test/new.jpg"
+    assert image.variant_id == variant_id
+
+
+@pytest.mark.asyncio
+async def test_remove_image(db_session: AsyncSession):
+    product = await _create_test_product(db_session)
+    fetched = await service.get_product(db_session, product.id)
+    image_id = fetched.variants[0].images[0].id
+
+    await service.remove_image(db_session, image_id)
+
+    from sqlalchemy import select as sa_select
+    from src.features.products.models import ProductImage as PI
+    result = await db_session.execute(sa_select(PI).where(PI.id == image_id))
+    assert result.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_reorder_images(db_session: AsyncSession):
+    from src.features.products.schemas import ImageCreate
+    product = await _create_test_product(db_session)
+    fetched = await service.get_product(db_session, product.id)
+    variant_id = fetched.variants[0].id
+    first_image_id = fetched.variants[0].images[0].id
+
+    second = await service.add_image(
+        db_session, variant_id, ImageCreate(url="https://cdn.test/second.jpg", position=1)
+    )
+
+    reordered = await service.reorder_images(db_session, variant_id, [second.id, first_image_id])
+    assert reordered[0].id == second.id
+    assert reordered[0].position == 0
+    assert reordered[1].position == 1
