@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { applyRouteGuards } from '@shared/auth/guards'
 import StorefrontLayout from '@/pages/StorefrontLayout.vue'
 import AuthLayout from '@/pages/AuthLayout.vue'
+import { homeRoutes } from '@features/home/routes'
 import { productRoutes } from '@features/products/routes'
 import { cartRoutes } from '@features/cart/routes'
 import { checkoutRoutes } from '@features/checkout/routes'
@@ -17,7 +18,7 @@ const router = createRouter({
       path: '/',
       component: StorefrontLayout,
       children: [
-        { path: '', redirect: '/products' },
+        ...homeRoutes,
         ...productRoutes,
         ...cartRoutes,
         ...checkoutRoutes,
