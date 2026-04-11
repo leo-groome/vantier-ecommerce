@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useCartStore } from '@features/cart/store'
+import CartDrawer from '@features/cart/components/CartDrawer.vue'
 
 const cart = useCartStore()
 const mobileMenuOpen = ref(false)
+const cartOpen = ref(false)
 </script>
 <template>
   <div class="min-h-screen flex flex-col bg-[color:var(--color-surface)] text-[color:var(--color-on-surface)]">
@@ -34,7 +36,7 @@ const mobileMenuOpen = ref(false)
         <!-- Right actions -->
         <div class="flex items-center gap-4">
           <!-- Cart icon -->
-          <RouterLink to="/cart" class="relative p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]" aria-label="Cart">
+          <button class="relative p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]" aria-label="Open cart" @click="cartOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
             </svg>
@@ -47,7 +49,7 @@ const mobileMenuOpen = ref(false)
                 {{ cart.totalItems > 9 ? '9+' : cart.totalItems }}
               </span>
             </Transition>
-          </RouterLink>
+          </button>
         </div>
       </div>
     </header>
@@ -79,4 +81,9 @@ const mobileMenuOpen = ref(false)
   .badge-pop-enter-from { transform: scale(1.4); }
   .badge-pop-enter-to { transform: scale(1); }
   </style>
+
+  <!-- Cart Drawer (teleported to body to escape stacking contexts) -->
+  <Teleport to="body">
+    <CartDrawer :open="cartOpen" @close="cartOpen = false" />
+  </Teleport>
 </template>
