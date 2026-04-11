@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { applyRouteGuards } from '@shared/auth/guards'
 import StorefrontLayout from '@/pages/StorefrontLayout.vue'
 import { productRoutes } from '@features/products/routes'
+import { cartRoutes } from '@features/cart/routes'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -12,6 +13,7 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/products' },
         ...productRoutes,
+        ...cartRoutes,
       ],
     },
   ],
