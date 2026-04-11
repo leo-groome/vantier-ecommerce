@@ -4,6 +4,10 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -17,10 +21,11 @@ if config.config_file_name is not None:
 # Override sqlalchemy.url from environment variable
 database_url = os.environ.get("DATABASE_URL", "")
 if database_url.startswith("postgresql://"):
-    # Ensure asyncpg driver
     database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 elif database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+# asyncpg uses ssl=require, not sslmode=require
+database_url = database_url.replace("sslmode=require", "ssl=require")
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Import all models so Alembic can detect schema changes
