@@ -45,8 +45,8 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     # Routers — uncomment each as the slice is implemented
-    # from src.features.products.router import router as products_router
-    # app.include_router(products_router, prefix="/api/v1/products", tags=["Products"])
+    from src.features.products.router import router as products_router
+    app.include_router(products_router, prefix="/api/v1/products", tags=["Products"])
 
     # from src.features.inventory.router import router as inventory_router
     # app.include_router(inventory_router, prefix="/api/v1/inventory", tags=["Inventory"])
