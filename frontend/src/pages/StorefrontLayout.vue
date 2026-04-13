@@ -121,7 +121,7 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
             :href="newsletterUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-amber-accent)]/70"
+            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-amber-accent)]/70 hover:text-[color:var(--color-amber-accent)] transition-colors duration-[var(--duration-fast)]"
           >
             Newsletter — 15% off
           </a>
