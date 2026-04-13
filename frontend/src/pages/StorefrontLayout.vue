@@ -4,30 +4,37 @@ import { useRoute } from 'vue-router'
 import { useCartStore } from '@features/cart/store'
 import CartDrawer from '@features/cart/components/CartDrawer.vue'
 import ToastContainer from '@shared/components/ToastContainer.vue'
+import AnnouncementBar from '@shared/components/AnnouncementBar.vue'
+import AppFooter from '@shared/components/AppFooter.vue'
 
 const route = useRoute()
 const cart = useCartStore()
 const mobileMenuOpen = ref(false)
 const cartOpen = ref(false)
 
-// Close mobile menu on route change
-watch(() => route.path, () => { mobileMenuOpen.value = false })
+// Close mobile menu and cart drawer on route change
+watch(() => route.path, () => { mobileMenuOpen.value = false; cartOpen.value = false })
 
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/shop', label: 'Shop' },
   { to: '/about', label: 'About' },
 ]
+
+const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with real URL when known
 </script>
 <template>
   <div class="min-h-screen flex flex-col bg-[color:var(--color-surface)] text-[color:var(--color-on-surface)]">
+    <!-- Announcement bar -->
+    <AnnouncementBar />
+
     <!-- Nav -->
-    <header class="sticky top-0 z-40 border-b border-[color:var(--color-border)] bg-[color:var(--color-surface)]/95 backdrop-blur-sm">
+    <header class="sticky top-0 z-40 border-b border-[color:var(--color-amber-accent)]/8 bg-[color:var(--color-obsidian)]">
       <div class="max-w-[var(--container-max)] mx-auto px-[var(--spacing-container)] h-16 flex items-center justify-between">
         <!-- Logo -->
         <RouterLink
           to="/"
-          class="text-[length:var(--text-small)] font-bold uppercase tracking-[var(--tracking-display)] text-[color:var(--color-on-surface)] hover:opacity-70 transition-opacity duration-[var(--duration-fast)]"
+          class="text-[length:var(--text-small)] font-bold uppercase tracking-[var(--tracking-display)] text-[color:var(--color-ivory)] hover:opacity-70 transition-opacity duration-[var(--duration-fast)]"
         >
           Vantier
         </RouterLink>
@@ -38,17 +45,27 @@ const navLinks = [
             v-for="link in navLinks"
             :key="link.to"
             :to="link.to"
-            class="text-[length:var(--text-small)] font-medium uppercase tracking-[var(--tracking-label)] relative after:absolute after:bottom-0 after:left-0 after:h-px after:bg-current after:transition-[width] after:duration-[var(--duration-normal)] after:ease-[var(--ease-out-expo)] hover:after:w-full"
-            :class="$route.path === link.to ? 'after:w-full' : 'after:w-0'"
+            class="text-[length:var(--text-small)] font-medium uppercase tracking-[var(--tracking-label)] text-[color:var(--color-ivory)]/50 hover:text-[color:var(--color-ivory)] relative after:absolute after:bottom-0 after:left-0 after:h-px after:bg-[color:var(--color-ivory)] after:transition-[width] after:duration-[var(--duration-normal)] after:ease-[var(--ease-out-expo)] hover:after:w-full transition-colors duration-[var(--duration-fast)]"
+            :class="$route.path === link.to ? 'text-[color:var(--color-ivory)] after:w-full' : 'after:w-0'"
           >
             {{ link.label }}
           </RouterLink>
         </nav>
 
         <!-- Right actions -->
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-4">
+          <!-- Newsletter external link -->
+          <a
+            :href="newsletterUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hidden md:inline-flex text-[length:var(--text-small)] font-medium uppercase tracking-[var(--tracking-label)] text-[color:var(--color-amber-accent)]/80 hover:text-[color:var(--color-amber-accent)] border-b border-[color:var(--color-amber-accent)]/30 hover:border-[color:var(--color-amber-accent)] pb-px transition-all duration-[var(--duration-fast)]"
+          >
+            Newsletter — 15% off
+          </a>
+
           <!-- Cart icon -->
-          <button class="relative p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]" aria-label="Open cart" @click="cartOpen = true">
+          <button class="relative p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)] text-[color:var(--color-ivory)]" aria-label="Open cart" @click="cartOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
             </svg>
@@ -56,7 +73,7 @@ const navLinks = [
               <span
                 v-if="cart.totalItems > 0"
                 :key="cart.totalItems"
-                class="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[color:var(--color-amber-accent)] text-[color:var(--color-obsidian)] text-[10px] font-bold flex items-center justify-center"
               >
                 {{ cart.totalItems > 9 ? '9+' : cart.totalItems }}
               </span>
@@ -65,7 +82,7 @@ const navLinks = [
 
           <!-- Hamburger (mobile only) -->
           <button
-            class="md:hidden p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]"
+            class="md:hidden p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)] text-[color:var(--color-ivory)]"
             :aria-label="mobileMenuOpen ? 'Close menu' : 'Open menu'"
             :aria-expanded="mobileMenuOpen"
             @click="mobileMenuOpen = !mobileMenuOpen"
@@ -88,18 +105,26 @@ const navLinks = [
       <Transition name="mobile-menu">
         <nav
           v-if="mobileMenuOpen"
-          class="md:hidden border-t border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-[var(--spacing-container)] py-6 flex flex-col gap-5"
+          class="md:hidden border-t border-[color:var(--color-amber-accent)]/10 bg-[color:var(--color-obsidian)] px-[var(--spacing-container)] py-6 flex flex-col gap-5"
           aria-label="Mobile navigation"
         >
           <RouterLink
             v-for="link in navLinks"
             :key="link.to"
             :to="link.to"
-            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-on-surface)] hover:opacity-60 transition-opacity duration-[var(--duration-fast)]"
+            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-ivory)] hover:opacity-60 transition-opacity duration-[var(--duration-fast)]"
             :class="{ 'opacity-40': $route.path !== link.to }"
           >
             {{ link.label }}
           </RouterLink>
+          <a
+            :href="newsletterUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-amber-accent)]/70"
+          >
+            Newsletter — 15% off
+          </a>
         </nav>
       </Transition>
     </header>
@@ -110,19 +135,7 @@ const navLinks = [
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-[color:var(--color-border)] mt-[var(--spacing-section)]">
-      <div class="max-w-[var(--container-max)] mx-auto px-[var(--spacing-container)] py-12">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-          <p class="text-[length:var(--text-small)] font-bold uppercase tracking-[var(--tracking-display)]">Vantier</p>
-          <nav class="flex gap-6 text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-60">
-            <RouterLink to="/contact" class="hover:opacity-100 transition-opacity">Contact</RouterLink>
-            <RouterLink to="/contact" class="hover:opacity-100 transition-opacity">Exchange Policy</RouterLink>
-            <RouterLink to="/contact" class="hover:opacity-100 transition-opacity">Shipping</RouterLink>
-          </nav>
-          <p class="text-[length:var(--text-micro)] opacity-40">© {{ new Date().getFullYear() }} Vantier</p>
-        </div>
-      </div>
-    </footer>
+    <AppFooter />
   </div>
 
   <!-- Cart Drawer -->
