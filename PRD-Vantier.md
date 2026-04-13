@@ -367,11 +367,10 @@ All slice files exist as stubs (`schemas.py`, `service.py`, `router.py`). Implem
 - [x] Router: `PATCH /inventory/variants/{id}/stock`, `GET /inventory/low-stock`, `GET /inventory/variants/{id}/barcode`, `POST/GET/PATCH/DELETE /inventory/operating-costs`
 - [x] `resend_client.py`: `send_low_stock_alert()` bootstrap (fire-and-forget, never raises)
 
-#### 2.3 Discounts slice (`src/features/discounts/`)
-- [ ] Schemas: `DiscountCodeCreate`, `DiscountCodeResponse`, `DiscountValidateRequest`
-- [ ] Service: CRUD, margin-floor validation, usage count increment (atomic `SELECT FOR UPDATE`), expiry check
-- [ ] Router: `POST /discounts`, `GET /discounts`, `PATCH /discounts/{id}`, `POST /discounts/validate`
-- [ ] Owner-only for create/edit; public validate endpoint
+#### 2.3 Discounts slice (`src/features/discounts/`) ✅ COMPLETE
+- [x] Schemas: `DiscountCodeCreate`, `DiscountCodeUpdate`, `DiscountCodeResponse`, `DiscountValidateRequest`, `DiscountValidateResponse`
+- [x] Service: CRUD (case-insensitive dedup, uppercase normalization), margin-floor warning, usage count guard, expiry check, `increment_usage_count` (SELECT FOR UPDATE — called by Orders in 2.4)
+- [x] Router: `POST /discounts`, `GET /discounts`, `GET /discounts/{id}`, `PATCH /discounts/{id}`, `POST /discounts/validate` (public)
 
 #### 2.4 Orders slice (`src/features/orders/`)
 - [ ] Schemas: `OrderCreate`, `OrderResponse`, `OrderStatusUpdate`
