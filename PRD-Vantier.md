@@ -137,7 +137,7 @@ SKU format: `VAT-{LINE}-{STYLE}-{SIZE}-{COLOR}-{SUFFIX}` (e.g. `VAT-PA-CL-M-BLAC
 - Top-selling SKUs
 - Pending orders count
 - Low stock alert banner
-- Profit margin alert: visual warning when any product's effective margin < 50%
+- [x] Profit margin alert: visual warning in Frontend when any product's effective margin < 50%
 
 #### Inventory Management
 - CRUD for products, variants (size, color, style)
@@ -169,7 +169,7 @@ SKU format: `VAT-{LINE}-{STYLE}-{SIZE}-{COLOR}-{SUFFIX}` (e.g. `VAT-PA-CL-M-BLAC
 #### Discount Codes
 - Create/edit/disable coupon codes
 - Types: % off (max 100%), fixed amount off
-- System validation: discount cannot reduce margin below 50% floor (alert shown)
+- System validation: visual warning when discount reduces margin below 50% floor
 - Usage limit and expiration date per code
 
 #### User Management
@@ -355,17 +355,17 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 
 All slice files exist as stubs (`schemas.py`, `service.py`, `router.py`). Implementation order:
 
-#### 2.1 Products slice (`src/features/products/`)
-- [ ] Pydantic schemas: `ProductCreate`, `ProductUpdate`, `ProductResponse`, `VariantCreate`, `VariantResponse`
-- [ ] Service: product CRUD, variant CRUD, SKU auto-generation, margin validation on create/update
-- [ ] Router: `GET /products`, `POST /products`, `GET /products/{id}`, `PATCH /products/{id}`, variant sub-routes
-- [ ] Admin-only write endpoints (require `AdminUserDep`); public read endpoints
+#### 2.1 Products slice (`src/features/products/`) ✅ COMPLETE
+- [x] Pydantic schemas: `ProductCreate`, `ProductUpdate`, `ProductResponse`, `VariantCreate`, `VariantResponse`
+- [x] Service: product CRUD, variant CRUD, SKU auto-generation (margin validation moved to Frontend)
+- [x] Router: `GET /products`, `POST /products`, `GET /products/{id}`, `PATCH /products/{id}`, variant sub-routes
+- [x] Admin-only write endpoints (require `AdminUserDep`); public read endpoints
 
-#### 2.2 Inventory slice (`src/features/inventory/`)
-- [ ] Schemas: `StockAdjustment`, `OperatingCostCreate`, `OperatingCostResponse`
-- [ ] Service: stock adjustment, low-stock alert trigger (≤50 total units → Resend email), barcode PDF generation
-- [ ] Router: `PATCH /inventory/variants/{id}/stock`, `GET /inventory/low-stock`, `GET /inventory/variants/{id}/barcode`
-- [ ] CSV bulk import/export for variants
+#### 2.2 Inventory slice (`src/features/inventory/`) ✅ COMPLETE
+- [x] Schemas: `StockAdjustment`, `StockAdjustmentResponse`, `OperatingCostCreate`, `OperatingCostUpdate`, `OperatingCostResponse`
+- [x] Service: stock adjustment (SELECT FOR UPDATE), low-stock alert per-variant (≤50 units → Resend email), barcode PDF generation (python-barcode + reportlab), OperatingCost CRUD
+- [x] Router: `PATCH /inventory/variants/{id}/stock`, `GET /inventory/low-stock`, `GET /inventory/variants/{id}/barcode`, `POST/GET/PATCH/DELETE /inventory/operating-costs`
+- [x] `resend_client.py`: `send_low_stock_alert()` bootstrap (fire-and-forget, never raises)
 
 #### 2.3 Discounts slice (`src/features/discounts/`)
 - [ ] Schemas: `DiscountCodeCreate`, `DiscountCodeResponse`, `DiscountValidateRequest`

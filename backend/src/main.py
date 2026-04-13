@@ -48,8 +48,8 @@ def create_app() -> FastAPI:
     from src.features.products.router import router as products_router
     app.include_router(products_router, prefix="/api/v1/products", tags=["Products"])
 
-    # from src.features.inventory.router import router as inventory_router
-    # app.include_router(inventory_router, prefix="/api/v1/inventory", tags=["Inventory"])
+    from src.features.inventory.router import router as inventory_router
+    app.include_router(inventory_router, prefix="/api/v1/inventory", tags=["Inventory"])
 
     # from src.features.orders.router import router as orders_router
     # app.include_router(orders_router, prefix="/api/v1/orders", tags=["Orders"])
