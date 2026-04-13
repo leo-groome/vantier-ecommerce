@@ -73,7 +73,7 @@ onUnmounted(() => {
           :alt="slide.sub"
           class="absolute inset-0 w-full h-full object-cover pointer-events-none"
           :class="slide.dark ? 'opacity-60' : 'opacity-45'"
-          :style="{ transform: `translateY(${scrollY * 0.35}px)` }"
+          :style="{ objectPosition: `50% calc(50% + ${scrollY * 0.15}px)` }"
         />
         <!-- Architectural lines -->
         <div
