@@ -11,7 +11,8 @@ function getUserRole(): string | null {
 function getCartCount(): number {
   try {
     const cart = JSON.parse(localStorage.getItem('vantier_cart') ?? '[]')
-    return Array.isArray(cart) ? cart.length : 0
+    if (!Array.isArray(cart)) return 0
+    return cart.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity ?? 1), 0)
   } catch {
     return 0
   }

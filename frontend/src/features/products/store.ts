@@ -11,14 +11,24 @@ export const useProductsStore = defineStore('products', () => {
 
   async function loadCatalog() {
     loading.value = true
-    catalog.value = await fetchProducts(filters.value)
-    loading.value = false
+    try {
+      catalog.value = await fetchProducts(filters.value)
+    } catch {
+      catalog.value = []
+    } finally {
+      loading.value = false
+    }
   }
 
   async function loadProduct(id: string) {
     loading.value = true
-    selected.value = await fetchProduct(id)
-    loading.value = false
+    try {
+      selected.value = await fetchProduct(id)
+    } catch {
+      selected.value = null
+    } finally {
+      loading.value = false
+    }
   }
 
   return { catalog, selected, filters, loading, loadCatalog, loadProduct }

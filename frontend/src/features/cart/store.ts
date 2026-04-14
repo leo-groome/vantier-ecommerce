@@ -1,9 +1,20 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { CartItem } from './types'
 
+const STORAGE_KEY = 'vantier_cart'
+
+function loadFromStorage(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
 export const useCartStore = defineStore('cart', () => {
-  const items = ref<CartItem[]>([])
+  const items = ref<CartItem[]>(loadFromStorage())
 
   const totalItems = computed(() =>
     items.value.reduce((sum, item) => sum + item.quantity, 0)
@@ -14,6 +25,11 @@ export const useCartStore = defineStore('cart', () => {
   )
 
   const freeShipping = computed(() => totalItems.value >= 5)
+
+  // Persist to localStorage on every change
+  watch(items, (val) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+  }, { deep: true })
 
   function addItem(item: CartItem) {
     const existing = items.value.find((i) => i.variantId === item.variantId)
@@ -30,6 +46,7 @@ export const useCartStore = defineStore('cart', () => {
 
   function clear() {
     items.value = []
+    localStorage.removeItem(STORAGE_KEY)
   }
 
   return { items, totalItems, subtotal, freeShipping, addItem, removeItem, clear }

@@ -25,6 +25,8 @@ const router = createRouter({
         ...orderRoutes,
         ...accountRoutes,
         ...exchangeRoutes,
+        { path: 'about',   component: () => import('@features/about/AboutPage.vue') },
+        { path: 'contact', component: () => import('@features/contact/ContactPage.vue') },
       ],
     },
     ...adminRoutes,

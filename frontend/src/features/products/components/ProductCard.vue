@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Product } from '../types'
+import { COLOR_BG, COLOR_TEXT } from '../mockData'
 import ImageWithReveal from '@shared/components/ImageWithReveal.vue'
 import EditorialQuote from '@shared/components/EditorialQuote.vue'
 import StatusLabel from '@shared/components/StatusLabel.vue'
@@ -83,13 +84,25 @@ async function onQuickAdd(e: Event) {
 <template>
   <article class="group relative flex flex-col">
     <!-- Image container -->
-    <RouterLink :to="`/shop/${product.id}`" class="relative overflow-hidden block aspect-[3/4] bg-[color:var(--color-surface-alt)]">
+    <RouterLink :to="`/shop/${product.id}`" class="relative overflow-hidden block aspect-[3/4]">
+      <!-- Real product image -->
       <ImageWithReveal
         v-if="primaryImage"
         :src="primaryImage.url"
         :alt="primaryImage.alt || product.name"
         class="w-full h-full object-cover transition-transform duration-[var(--duration-slow)] ease-[var(--ease-luxury)] group-hover:scale-[1.03]"
       />
+      <!-- Editorial color placeholder when no image -->
+      <div
+        v-else
+        class="w-full h-full flex flex-col justify-end p-5 transition-transform duration-[var(--duration-slow)] ease-[var(--ease-luxury)] group-hover:scale-[1.03]"
+        :style="{ backgroundColor: COLOR_BG[selectedColor] ?? 'oklch(88% 0.018 80)' }"
+      >
+        <p
+          class="text-[length:var(--text-micro)] font-medium uppercase tracking-[var(--tracking-display)] leading-tight max-w-[80%]"
+          :style="{ color: COLOR_TEXT[selectedColor] ?? 'oklch(8% 0.005 250)' }"
+        >{{ product.name }}</p>
+      </div>
       <!-- Quote overlay — reveals on hover -->
       <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-[var(--duration-normal)] pointer-events-none" />
       <div class="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
