@@ -30,8 +30,8 @@ class Settings(BaseSettings):
 
     # Resend
     resend_api_key: str
-    resend_from_email: str = "noreply@vantier.com"
-    resend_support_email: str = "luxury@vantiersupport.com"
+    resend_from_email: str = "support@vantierluxuryla.com"
+    resend_support_email: str = "support@vantierluxuryla.com"
 
     # Storage
     storage_url: str

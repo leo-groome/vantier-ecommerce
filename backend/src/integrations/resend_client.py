@@ -57,7 +57,7 @@ async def send_low_stock_alert(variants: list[dict]) -> None:
 
     await _post(
         {
-            "from": f"Vantier Admin <{settings.resend_from_email}>",
+            "from": f"Vantier <{settings.resend_from_email}>",
             "to": [settings.resend_support_email],
             "subject": f"⚠️ Low Stock Alert — {len(variants)} variant(s) need attention",
             "text": body,

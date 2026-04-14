@@ -344,16 +344,21 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 - [x] Second migration (`002`) — percent discount constraint + partial unique index on default address
 - [x] `CLAUDE.md` with environment and architecture instructions
 
-**What's still needed before Phase 2 can start:**
-- [ ] `.env` file populated with real Neon DB URL, Neon Auth JWKS URL, and audience
-- [ ] `alembic upgrade head` run against the Neon database to apply migrations
-- [ ] USD pricing confirmed for all product lines (required for checkout)
+**Prerequisites — all complete ✅:**
+- [x] `.env` file populated with real Neon DB URL, Neon Auth JWKS URL, and audience
+- [x] `alembic upgrade head` run against the Neon database — all 12 tables live
+- [x] `scripts/test_resend.py` created for manual email connection test
+- [ ] USD pricing confirmed for all product lines — **still pending (blocking checkout)**
+- [ ] Resend domain `vantierluxuryla.com` DNS verified — **pending (client action)**
 
 ---
 
-### Phase 2 — Commerce Core (Backend API)
+### Phase 2 — Commerce Core (Backend API) 🔄 IN PROGRESS
 
-All slice files exist as stubs (`schemas.py`, `service.py`, `router.py`). Implementation order:
+All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2.7**
+
+> **Test suite:** 65 tests passing as of last session. Run with:
+> `~/.pyenv/versions/vantier-backend/bin/python -m pytest -q`
 
 #### 2.1 Products slice (`src/features/products/`) ✅ COMPLETE
 - [x] Pydantic schemas: `ProductCreate`, `ProductUpdate`, `ProductResponse`, `VariantCreate`, `VariantResponse`
@@ -366,38 +371,60 @@ All slice files exist as stubs (`schemas.py`, `service.py`, `router.py`). Implem
 - [x] Service: stock adjustment (SELECT FOR UPDATE), low-stock alert per-variant (≤50 units → Resend email), barcode PDF generation (python-barcode + reportlab), OperatingCost CRUD
 - [x] Router: `PATCH /inventory/variants/{id}/stock`, `GET /inventory/low-stock`, `GET /inventory/variants/{id}/barcode`, `POST/GET/PATCH/DELETE /inventory/operating-costs`
 - [x] `resend_client.py`: `send_low_stock_alert()` bootstrap (fire-and-forget, never raises)
+- [x] 16 tests passing
 
 #### 2.3 Discounts slice (`src/features/discounts/`) ✅ COMPLETE
 - [x] Schemas: `DiscountCodeCreate`, `DiscountCodeUpdate`, `DiscountCodeResponse`, `DiscountValidateRequest`, `DiscountValidateResponse`
 - [x] Service: CRUD (case-insensitive dedup, uppercase normalization), margin-floor warning, usage count guard, expiry check, `increment_usage_count` (SELECT FOR UPDATE — called by Orders in 2.4)
 - [x] Router: `POST /discounts`, `GET /discounts`, `GET /discounts/{id}`, `PATCH /discounts/{id}`, `POST /discounts/validate` (public)
+- [x] 19 tests passing
 
-#### 2.4 Orders slice (`src/features/orders/`)
-- [ ] Schemas: `OrderCreate`, `OrderResponse`, `OrderStatusUpdate`
-- [ ] Service: order creation (stock decrement, free-shipping logic, discount application), status transitions
-- [ ] Router: `POST /orders`, `GET /orders`, `GET /orders/{id}`, `PATCH /orders/{id}/status`
-- [ ] Stripe integration: `POST /orders/checkout` → creates Stripe Checkout Session
-- [ ] Stripe webhook handler: `POST /webhooks/stripe` → confirms payment, updates `payment_status`
+---
 
-#### 2.5 Integrations (`src/integrations/`)
-- [ ] `stripe_client.py`: `create_checkout_session()`, `verify_webhook_signature()`
-- [ ] `envia_client.py`: `get_shipping_rates(origin, destination, package)`, `create_shipment()`, `get_label_url()`
-- [ ] `resend_client.py`: one function per email trigger (order confirmed, shipped, exchange, low stock, new order, contact)
-
-#### 2.6 Purchase Orders slice (`src/features/purchase_orders/`)
-- [ ] Schemas: `PurchaseOrderCreate`, `PurchaseOrderResponse`, `POStatusUpdate`
-- [ ] Service: PO CRUD, status transition to `received` triggers `stock_qty` increment per item
-- [ ] Router: `POST /purchase-orders`, `GET /purchase-orders`, `PATCH /purchase-orders/{id}/status`
-
-#### 2.7 Exchanges slice (`src/features/exchanges/`)
-- [ ] Schemas: `ExchangeCreate`, `ExchangeResponse`, `ExchangeAdminUpdate`
-- [ ] Service: create exchange request (validates same product line), admin status update, Resend notification
-- [ ] Router: `POST /exchanges`, `GET /exchanges`, `PATCH /exchanges/{id}`
-
-#### 2.8 Users slice (`src/features/users/`)
+#### 2.8 Users slice (`src/features/users/`) ⏳ NEXT
+> **Why first:** Unlocks real JWT tokens for all protected endpoints. Needed to manually QA everything.
 - [ ] Schemas: `AdminUserInvite`, `AdminUserResponse`, `AdminRoleUpdate`
-- [ ] Service: list/deactivate admins, role update (owner-only)
-- [ ] Router: `GET /users`, `PATCH /users/{id}`, `DELETE /users/{id}`
+- [ ] Service: list admins, deactivate, role update (owner-only), self-registration on first login
+- [ ] Router: `GET /users`, `POST /users/invite`, `PATCH /users/{id}`, `DELETE /users/{id}`
+- [ ] Seed script: `scripts/seed_owner.py` — creates first owner row from Neon Auth user ID
+
+#### 2.5 Integrations (`src/integrations/`) ⏳ PENDING
+> **Why before Orders:** Orders depends on Stripe and envia clients.
+- [x] `resend_client.py`: `send_low_stock_alert()` ← already done in 2.2
+- [ ] `resend_client.py`: remaining triggers — `send_order_confirmed()`, `send_order_shipped()`, `send_exchange_notification()`, `send_new_order_alert()`, `send_contact_form()`
+- [ ] `stripe_client.py`: `create_checkout_session()`, `verify_webhook_signature()`
+  > ⚠️ Requires Stripe secret key + webhook secret in `.env`. Credentials pending from client.
+- [ ] `envia_client.py`: `get_shipping_rates()`, `create_shipment()`, `get_label_url()`
+  > ⚠️ Requires envia.com API key. Credentials pending from client.
+  > 💡 Orders can be built with placeholder/mock clients first, connect real keys later.
+
+#### 2.4 Orders slice (`src/features/orders/`) ⏳ PENDING
+> **Depends on:** 2.5 integrations (Stripe + envia stubs at minimum)
+- [ ] Schemas: `OrderCreate`, `OrderItemCreate`, `OrderResponse`, `OrderStatusUpdate`
+- [ ] Service:
+  - Order creation: validate variants in stock, decrement `stock_qty`, apply discount (`increment_usage_count`), compute free shipping (qty ≥ 5), create Stripe Checkout Session
+  - Status transitions: `Pending → Processing → Shipped → Delivered`
+  - Guest checkout support (`neon_auth_user_id` nullable)
+- [ ] Router:
+  - `POST /orders/checkout` → Stripe Checkout Session
+  - `POST /webhooks/stripe` → payment confirmed, `payment_status = paid` (PUBLIC, sig-verified)
+  - `GET /orders` → admin list with filters
+  - `GET /orders/{id}` → detail
+  - `PATCH /orders/{id}/status` → admin status update
+  - `POST /orders/{id}/shipping-label` → envia.com label generation
+- [ ] Resend triggers: `send_order_confirmed()` on checkout, `send_new_order_alert()` to admin, `send_order_shipped()` on status → Shipped
+
+#### 2.6 Purchase Orders slice (`src/features/purchase_orders/`) ⏳ PENDING
+> **Independent — can be built any time after 2.8**
+- [ ] Schemas: `PurchaseOrderCreate`, `PurchaseOrderResponse`, `POStatusUpdate`, `POItemCreate`
+- [ ] Service: PO CRUD, status transition to `received` → auto-increments `stock_qty` per item
+- [ ] Router: `POST /purchase-orders`, `GET /purchase-orders`, `GET /purchase-orders/{id}`, `PATCH /purchase-orders/{id}/status`
+
+#### 2.7 Exchanges slice (`src/features/exchanges/`) ⏳ PENDING
+> **Depends on:** Orders (2.4) to have `order_id` to reference
+- [ ] Schemas: `ExchangeCreate`, `ExchangeResponse`, `ExchangeAdminUpdate`
+- [ ] Service: create exchange request (validates same product line), admin status update, Resend notification to both parties
+- [ ] Router: `POST /exchanges`, `GET /exchanges`, `GET /exchanges/{id}`, `PATCH /exchanges/{id}`
 
 ---
 
@@ -450,16 +477,17 @@ All slice files exist as stubs (`schemas.py`, `service.py`, `router.py`). Implem
 
 | # | Item | Owner | Status |
 |---|---|---|---|
-| 1 | Confirm USD pricing for all 3 lines × 2 styles | Vantier | **Blocking Phase 2 checkout** |
+| 1 | Confirm USD pricing for all 3 lines × 2 styles | Vantier | ⛔ **Blocking Phase 2.4 checkout** |
 | 2 | Provide brand assets: logo, color palette, fonts, photography | Vantier | Needed for Phase 3 |
-| 3 | Confirm envia.com API credentials + account type | Vantier | Needed for Phase 2 shipping |
-| 4 | Confirm Stripe account (US entity or MX?) for payout currency | Vantier | Needed for Phase 2 checkout |
+| 3 | Confirm envia.com API credentials + account type | Vantier | ⛔ **Blocking 2.5 envia_client** |
+| 4 | Confirm Stripe account (US entity or MX?) + credentials | Vantier | ⛔ **Blocking 2.5 stripe_client** |
 | 5 | Confirm operating cost in USD (currently ~$580 MXN/order) | Vantier | Needed for margin calc |
 | 6 | Define product color catalog per variant | Vantier | Needed for Phase 2 products |
-| 7 | Populate `.env` with Neon DB URL + Neon Auth JWKS config | Dev | **Blocking migration run** |
+| 7 | Verify `vantierluxuryla.com` domain DNS in Resend dashboard | Dev/Client | ⚠️ Pending — email sends will fail until done |
+| 8 | Neon Auth: create first owner user to get real JWT for QA | Dev | Unblocked after 2.8 is built |
 
 ---
 
-*PRD Version: 2.0 — April 2026*
+*PRD Version: 2.1 — April 2026*
 *Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS*
-*Phase 1 backend complete. Phase 2 commerce API in progress.*
+*Phase 1 complete. Phase 2 in progress: 2.1–2.3 done (65 tests). Next: 2.8 Users → 2.5 Integrations → 2.4 Orders → 2.6 POs → 2.7 Exchanges.*
