@@ -1,37 +1,36 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import ProductLineCard from './ProductLineCard.vue'
 
+const hovered = ref<number | null>(null)
+
 const lines = [
-  {
-    line: 'Polo Atelier' as const,
-    subtitle: 'Structural excellence',
-    imageUrl: '/images/polo-atelier-hero.jpg',
-    href: '/shop?line=polo_atelier',
-  },
-  {
-    line: 'Signature' as const,
-    subtitle: 'Sartorial presence',
-    imageUrl: '/images/signature-hero.jpg',
-    href: '/shop?line=signature',
-  },
-  {
-    line: 'Essential' as const,
-    subtitle: 'Effortless ease',
-    imageUrl: '/images/essential-hero.jpg',
-    href: '/shop?line=essential',
-  },
+  { line: 'Polo Atelier' as const, subtitle: 'Structural excellence', href: '/shop' },
+  { line: 'Signature'    as const, subtitle: 'Sartorial presence',    href: '/shop' },
+  { line: 'Essential'    as const, subtitle: 'Effortless ease',       href: '/shop' },
 ]
 </script>
+
 <template>
-  <section class="py-[var(--spacing-section)]">
-    <div class="max-w-[var(--container-max)] mx-auto px-[var(--spacing-container)]">
-      <div class="flex items-center gap-4 mb-10">
-        <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-50">The Collection</p>
-        <div class="flex-1 h-px bg-[color:var(--color-border)]" />
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-[var(--spacing-card-gap)]">
-        <ProductLineCard v-for="item in lines" :key="item.line" v-bind="item" />
-      </div>
+  <section class="flex w-full overflow-hidden" style="height: 100svh;">
+    <div
+      v-for="(item, i) in lines"
+      :key="item.line"
+      class="relative overflow-hidden"
+      :style="{
+        flex: hovered === null ? '1 1 0' : hovered === i ? '1.9 1 0' : '0.55 1 0',
+        transition: 'flex 600ms cubic-bezier(0.25, 0.1, 0.1, 1)',
+      }"
+      @mouseenter="hovered = i"
+      @mouseleave="hovered = null"
+    >
+      <ProductLineCard
+        :line="item.line"
+        :subtitle="item.subtitle"
+        :href="item.href"
+        :active="hovered === i"
+        :faded="hovered !== null && hovered !== i"
+      />
     </div>
   </section>
 </template>

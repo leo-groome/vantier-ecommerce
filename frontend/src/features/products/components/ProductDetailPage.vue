@@ -7,7 +7,9 @@ import { useToast } from '@shared/composables/useToast'
 import ProductImageGallery from './ProductImageGallery.vue'
 import VariantSelector from './VariantSelector.vue'
 import SizeGuideModal from './SizeGuideModal.vue'
+import ProductCard from './ProductCard.vue'
 import SeoHead from '@shared/components/SeoHead.vue'
+import { MOCK_PRODUCTS } from '../mockData'
 
 type AddState = 'idle' | 'loading' | 'success'
 
@@ -68,6 +70,14 @@ function formatPrice(n: number) {
 }
 
 const resolvedVariant = computed(() => variantSelector.value?.resolvedVariant ?? null)
+
+// Related: same line, different id, max 4
+const related = computed(() => {
+  const all = products.catalog.length ? products.catalog : MOCK_PRODUCTS
+  return all
+    .filter(p => p.id !== displayProduct.value.id && p.line === displayProduct.value.line)
+    .slice(0, 4)
+})
 
 const canAdd = computed(() =>
   !!selectedColor.value && !!selectedSize.value && !!resolvedVariant.value
@@ -158,7 +168,7 @@ async function addToCart() {
             class="w-full py-4 flex items-center justify-center gap-3 text-[length:var(--text-small)] tracking-[var(--tracking-label)] uppercase font-medium transition-all duration-[var(--duration-normal)]"
             :class="[
               addState === 'success'
-                ? 'bg-green-900 text-white'
+                ? 'bg-[color:var(--color-obsidian)] text-[color:var(--color-amber-accent)]'
                 : 'bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] hover:opacity-80 disabled:opacity-35 disabled:cursor-not-allowed'
             ]"
             @click="addToCart"
@@ -222,4 +232,29 @@ async function addToCart() {
 
   <!-- Size guide modal -->
   <SizeGuideModal :open="sizeGuideOpen" @close="sizeGuideOpen = false" />
+
+  <!-- Related products -->
+  <section v-if="related.length" class="bg-[color:var(--color-warm-beige)] py-[var(--spacing-section)]">
+    <div class="max-w-[var(--container-max)] mx-auto px-[var(--spacing-container)]">
+      <div class="flex items-end justify-between mb-3">
+        <div>
+          <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-display)] opacity-40 mb-1">{{ displayProduct.line }}</p>
+          <h2 class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)]">You May Also Like</h2>
+        </div>
+        <RouterLink
+          to="/shop"
+          class="hidden sm:inline-flex items-center gap-2 text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-40 hover:opacity-100 transition-opacity duration-[var(--duration-normal)] mb-1"
+        >
+          View all
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </RouterLink>
+      </div>
+      <div class="w-full h-px bg-[color:var(--color-obsidian)]/10 mb-10" />
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-[var(--spacing-card-gap)]">
+        <ProductCard v-for="p in related" :key="p.id" :product="p" />
+      </div>
+    </div>
+  </section>
 </template>

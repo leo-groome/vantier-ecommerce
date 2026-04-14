@@ -131,7 +131,11 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
 
     <!-- Main content -->
     <main class="flex-1">
-      <RouterView />
+      <RouterView v-slot="{ Component, route }">
+        <Transition :name="route.meta.transition as string ?? 'page'" mode="out-in">
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </RouterView>
     </main>
 
     <!-- Footer -->
@@ -159,4 +163,14 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
 
 .hamburger-enter-active, .hamburger-leave-active { transition: opacity var(--duration-fast) ease; }
 .hamburger-enter-from, .hamburger-leave-to { opacity: 0; }
+
+/* Page transitions */
+.page-enter-active {
+  transition: opacity 240ms ease, transform 300ms cubic-bezier(0.25, 0.1, 0.1, 1);
+}
+.page-leave-active {
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.page-enter-from { opacity: 0; transform: translateY(10px); }
+.page-leave-to  { opacity: 0; transform: translateY(-4px); }
 </style>
