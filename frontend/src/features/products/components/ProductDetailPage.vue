@@ -10,6 +10,10 @@ import SizeGuideModal from './SizeGuideModal.vue'
 import ProductCard from './ProductCard.vue'
 import SeoHead from '@shared/components/SeoHead.vue'
 import { MOCK_PRODUCTS } from '../mockData'
+import ProductLookbook from './ProductLookbook.vue'
+import CareInstructions from './CareInstructions.vue'
+import type { CareData } from './CareInstructions.vue'
+import RelatedProducts from './RelatedProducts.vue'
 
 type AddState = 'idle' | 'loading' | 'success'
 
@@ -82,6 +86,45 @@ const related = computed(() => {
 const canAdd = computed(() =>
   !!selectedColor.value && !!selectedSize.value && !!resolvedVariant.value
 )
+
+const CARE_BY_LINE: Record<string, CareData> = {
+  'Polo Atelier': {
+    wash:     'Dry clean solamente',
+    iron:     'Temperatura baja, vapor',
+    store:    'Colgar, lejos de luz directa',
+    material: '100% lana italiana 16 mic',
+  },
+  'Signature': {
+    wash:     'Dry clean o lavado a mano',
+    iron:     'Temperatura media, sin vapor directo',
+    store:    'Colgar en funda de tela',
+    material: '95% algodón Pima, 5% elastano',
+  },
+  'Essential': {
+    wash:     'Lavado a máquina, frío',
+    iron:     'Temperatura baja',
+    store:    'Doblar, no colgar',
+    material: '100% algodón Pima 200g',
+  },
+}
+
+const RELATED_BY_LINE: Record<string, Array<{ line: string; href: string }>> = {
+  'Polo Atelier': [
+    { line: 'Signature', href: '/shop?line=signature' },
+    { line: 'Essential', href: '/shop?line=essential' },
+  ],
+  'Signature': [
+    { line: 'Polo Atelier', href: '/shop?line=polo-atelier' },
+    { line: 'Essential',    href: '/shop?line=essential' },
+  ],
+  'Essential': [
+    { line: 'Polo Atelier', href: '/shop?line=polo-atelier' },
+    { line: 'Signature',    href: '/shop?line=signature' },
+  ],
+}
+
+const currentCare = computed(() => CARE_BY_LINE[displayProduct.value.line] ?? CARE_BY_LINE['Polo Atelier'])
+const relatedLines = computed(() => RELATED_BY_LINE[displayProduct.value.line] ?? RELATED_BY_LINE['Polo Atelier'])
 
 async function addToCart() {
   if (!canAdd.value || addState.value !== 'idle') return
@@ -208,6 +251,11 @@ async function addToCart() {
       </div>
     </div>
   </section>
+
+  <!-- PDP storytelling sections -->
+  <ProductLookbook :line-name="displayProduct.line" />
+  <CareInstructions :line-name="displayProduct.line" :care="currentCare" />
+  <RelatedProducts :related-lines="relatedLines" />
 
   <!-- Sticky Add to Cart — mobile only (shown at bottom on small screens) -->
   <Teleport to="body">

@@ -30,7 +30,7 @@ function isActive(key: CheckoutStep, current: CheckoutStep) {
             isCompleted(step.key, currentStep)
               ? 'bg-[color:var(--color-obsidian)] border-[color:var(--color-obsidian)] text-[color:var(--color-ivory)]'
               : isActive(step.key, currentStep)
-                ? 'border-[color:var(--color-obsidian)] text-[color:var(--color-obsidian)]'
+                ? 'border-[color:var(--color-amber-accent)] text-[color:var(--color-amber-accent)]'
                 : 'border-[color:var(--color-border)] text-[color:var(--color-border-strong)]'
           ]"
         >
@@ -42,7 +42,7 @@ function isActive(key: CheckoutStep, current: CheckoutStep) {
         <!-- Label -->
         <span
           class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] transition-colors duration-[var(--duration-normal)]"
-          :class="isActive(step.key, currentStep) ? 'text-[color:var(--color-obsidian)] font-medium' : 'text-[color:var(--color-border-strong)]'"
+          :class="isActive(step.key, currentStep) ? 'text-[color:var(--color-amber-accent)] font-medium' : 'text-[color:var(--color-border-strong)]'"
         >
           {{ step.label }}
         </span>

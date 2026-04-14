@@ -15,8 +15,8 @@ import SeoHead from '@shared/components/SeoHead.vue'
   />
   <HeroCarousel />
   <ProductLineGrid />
-  <FeaturedProducts />
   <BrandStatement />
+  <FeaturedProducts />
   <ElProceso />
   <NewsletterStrip />
 </template>

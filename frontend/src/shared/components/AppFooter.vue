@@ -1,14 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
-const email = ref('')
-const submitted = ref(false)
-
-function subscribe() {
-  if (!email.value.trim()) return
-  submitted.value = true
-  email.value = ''
-}
+const newsletterUrl = 'https://vantierluxuryla.com/newsletter'
 </script>
 
 <template>
@@ -54,29 +45,18 @@ function subscribe() {
       <div class="flex flex-col gap-6">
         <div>
           <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-display)] opacity-40 mb-4">Stay in the know</p>
-
-          <Transition name="form-swap" mode="out-in">
-            <p v-if="submitted" class="text-[length:var(--text-micro)] text-[color:var(--color-amber-accent)] uppercase tracking-[var(--tracking-label)]">
-              You're on the list.
-            </p>
-            <form v-else class="flex items-center border-b border-[color:var(--color-ivory)]/20 pb-1 focus-within:border-[color:var(--color-amber-accent)] transition-colors duration-[var(--duration-normal)]" @submit.prevent="subscribe">
-              <input
-                v-model="email"
-                type="email"
-                placeholder="your@email.com"
-                class="flex-1 bg-transparent text-[length:var(--text-micro)] placeholder-[color:var(--color-ivory)]/25 text-[color:var(--color-ivory)] outline-none uppercase tracking-[var(--tracking-label)]"
-              />
-              <button
-                type="submit"
-                class="ml-3 opacity-40 hover:opacity-100 transition-opacity duration-[var(--duration-fast)]"
-                aria-label="Subscribe"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </form>
-          </Transition>
+          <a
+            :href="newsletterUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-newsletter-cta
+            class="inline-flex items-center gap-2 border border-[color:var(--color-ivory)]/30 px-5 py-2.5 text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-ivory)] hover:border-[color:var(--color-amber-accent)] hover:text-[color:var(--color-amber-accent)] transition-colors duration-[var(--duration-normal)]"
+          >
+            Unirme al círculo
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
         </div>
 
         <!-- Social -->
@@ -123,9 +103,3 @@ function subscribe() {
     </div>
   </footer>
 </template>
-
-<style scoped>
-.form-swap-enter-active { transition: opacity var(--duration-normal) ease; }
-.form-swap-leave-active { transition: opacity var(--duration-fast) ease; }
-.form-swap-enter-from, .form-swap-leave-to { opacity: 0; }
-</style>
