@@ -84,7 +84,10 @@ class OrderItem(Base):
     """A single line item within an order."""
 
     __tablename__ = "order_items"
-    __table_args__ = (CheckConstraint("qty > 0", name="ck_order_item_qty_positive"),)
+    __table_args__ = (
+        CheckConstraint("qty > 0", name="ck_order_item_qty_positive"),
+        CheckConstraint("customization_fee_usd >= 0", name="ck_order_item_custom_fee_non_negative"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -103,6 +106,9 @@ class OrderItem(Base):
     )
     qty: Mapped[int] = mapped_column(Numeric(10, 0), nullable=False)
     unit_price_usd: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    customization_fee_usd: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"), nullable=False)
+    customization_file_url: Mapped[str | None] = mapped_column(Text)
+    customization_details: Mapped[dict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

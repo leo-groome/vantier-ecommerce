@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { ProductVariant } from '../types'
 import ColorSwatch from '@shared/components/ColorSwatch.vue'
 import SizeButton from '@shared/components/SizeButton.vue'
+import { COLOR_BG } from '../mockData'
 
 const props = defineProps<{
   variants: ProductVariant[]
@@ -62,7 +63,7 @@ defineExpose({ resolvedVariant })
         <ColorSwatch
           v-for="color in colors"
           :key="color"
-          :color="color"
+          :color="COLOR_BG[color] ?? color"
           :label="color"
           :selected="color === selectedColor"
           @click="emit('update:selectedColor', color)"

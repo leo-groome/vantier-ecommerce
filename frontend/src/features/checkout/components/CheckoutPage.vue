@@ -11,6 +11,7 @@ import ShippingMethodSelect from './ShippingMethodSelect.vue'
 import StripePaymentForm from './StripePaymentForm.vue'
 import OrderSummaryPanel from './OrderSummaryPanel.vue'
 import SeoHead from '@shared/components/SeoHead.vue'
+import DiscountCodeInput from '@features/cart/components/DiscountCodeInput.vue'
 
 const checkout = useCheckoutStore()
 const router = useRouter()
@@ -89,6 +90,9 @@ function onPaymentError(msg: string) {
           <h2 class="text-[length:var(--text-title)] font-semibold mb-6 text-[color:var(--color-on-surface)]">
             Payment
           </h2>
+          <div class="mb-8">
+            <DiscountCodeInput />
+          </div>
           <StripePaymentForm
             @success="onPaymentSuccess"
             @error="onPaymentError"

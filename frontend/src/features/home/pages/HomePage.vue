@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import HeroCarousel from '../components/HeroCarousel.vue'
+import BrandBreather from '../components/BrandBreather.vue'
 import ProductLineGrid from '../components/ProductLineGrid.vue'
 import FeaturedProducts from '../components/FeaturedProducts.vue'
 import BrandStatement from '../components/BrandStatement.vue'
@@ -14,9 +15,10 @@ import SeoHead from '@shared/components/SeoHead.vue'
     canonical="https://vantierluxuryla.com/"
   />
   <HeroCarousel />
+  <BrandBreather />
+  <NewsletterStrip />
   <ProductLineGrid />
-  <BrandStatement />
   <FeaturedProducts />
   <ElProceso />
-  <NewsletterStrip />
+  <BrandStatement />
 </template>

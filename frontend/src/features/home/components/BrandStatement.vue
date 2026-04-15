@@ -14,7 +14,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section ref="sectionRef" class="w-full flex flex-col md:flex-row overflow-hidden" style="min-height: 520px;">
+  <section ref="sectionRef" class="w-full min-h-screen flex flex-col md:flex-row overflow-hidden">
 
     <!-- Left: image panel (40%) -->
     <div class="relative md:basis-2/5 h-64 md:h-auto bg-[color:var(--color-obsidian)] overflow-hidden flex-shrink-0">

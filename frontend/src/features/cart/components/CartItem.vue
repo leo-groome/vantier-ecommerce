@@ -60,6 +60,19 @@ function formatPrice(n: number) {
         {{ item.color }} · {{ item.size }}
       </p>
 
+      <!-- Personalization Info -->
+      <div v-if="item.isPersonalized" class="mt-2 text-[length:var(--text-micro)] text-[color:var(--color-amber-accent)] bg-[#0d0c0a] border border-[#2a2520] p-2 flex items-center gap-2">
+        <div class="w-6 h-6 flex items-center justify-center bg-[color:var(--color-amber-accent)]/10 text-[color:var(--color-amber-accent)] flex-shrink-0">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div>
+          <span class="uppercase tracking-[var(--tracking-label)] opacity-80 block text-[9px]">Custom Design</span>
+          <span class="text-[color:var(--color-ivory)] opacity-90">{{ item.customizationPlacement }}</span>
+        </div>
+      </div>
+
       <div class="flex items-center justify-between mt-3">
         <!-- Qty stepper -->
         <div class="flex items-center border border-[color:var(--color-border)]">

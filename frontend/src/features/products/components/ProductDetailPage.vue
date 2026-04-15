@@ -30,33 +30,21 @@ const variantSelector = ref<InstanceType<typeof VariantSelector> | null>(null)
 
 const product = computed(() => products.selected)
 
-// Mock data for when the API isn't wired yet
-const MOCK_PRODUCT = {
-  id: 'mock-1',
-  name: 'Polo Atelier — Classic',
-  line: 'Polo Atelier' as const,
-  style: 'Classic' as const,
-  priceUSD: 180,
-  description: 'Crafted from 100% Pima cotton with a refined silhouette. The Classic polo is the cornerstone of the Polo Atelier line — architectural in construction, restrained in detail.',
-  images: [
-    { id: 'i1', url: '/images/product-polo-1.jpg', alt: 'Polo Atelier Classic — Front', isPrimary: true },
-    { id: 'i2', url: '/images/product-polo-2.jpg', alt: 'Polo Atelier Classic — Back', isPrimary: false },
-    { id: 'i3', url: '/images/product-polo-3.jpg', alt: 'Polo Atelier Classic — Detail', isPrimary: false },
-  ],
-  variants: [
-    { id: 'v-ivory-s',  size: 'S',  color: 'Ivory',   stock: 12, sku: 'PA-CL-IVY-S'  },
-    { id: 'v-ivory-m',  size: 'M',  color: 'Ivory',   stock: 8,  sku: 'PA-CL-IVY-M'  },
-    { id: 'v-ivory-l',  size: 'L',  color: 'Ivory',   stock: 3,  sku: 'PA-CL-IVY-L'  },
-    { id: 'v-ivory-xl', size: 'XL', color: 'Ivory',   stock: 0,  sku: 'PA-CL-IVY-XL' },
-    { id: 'v-obs-s',    size: 'S',  color: 'Obsidian', stock: 15, sku: 'PA-CL-OBS-S'  },
-    { id: 'v-obs-m',    size: 'M',  color: 'Obsidian', stock: 10, sku: 'PA-CL-OBS-M'  },
-    { id: 'v-obs-l',    size: 'L',  color: 'Obsidian', stock: 5,  sku: 'PA-CL-OBS-L'  },
-    { id: 'v-obs-xl',   size: 'XL', color: 'Obsidian', stock: 2,  sku: 'PA-CL-OBS-XL' },
-  ],
-}
+// Use real product from store if available, else look up from MOCK_PRODUCTS
+const displayProduct = computed(() => {
+  if (product.value) return product.value
+  const id = route.params.id as string
+  return MOCK_PRODUCTS.find(p => p.id === id) ?? MOCK_PRODUCTS[0]
+})
 
-// Use real product from store if available, else mock
-const displayProduct = computed(() => product.value ?? MOCK_PRODUCT)
+// Merge all variants from products in the same line+style so all color swatches show
+const allVariants = computed(() => {
+  const base = displayProduct.value
+  const siblings = MOCK_PRODUCTS.filter(
+    p => p.line === base.line && p.style === base.style
+  )
+  return siblings.flatMap(p => p.variants)
+})
 
 // Auto-select first available color on load
 onMounted(async () => {
@@ -65,15 +53,43 @@ onMounted(async () => {
   } catch {
     // API not wired — use mock data
   }
-  const firstColor = displayProduct.value.variants[0]?.color
+  const firstColor = allVariants.value[0]?.color
   if (firstColor) selectedColor.value = firstColor
 })
+
 
 function formatPrice(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 }
 
 const resolvedVariant = computed(() => variantSelector.value?.resolvedVariant ?? null)
+
+// --- Personalization Feature ---
+const CUSTOMIZATION_PRICE_USD = 25; // Aprox $450 MXN
+const isPersonalized = ref(false)
+const custPlacement = ref('')
+const custFile = ref<File | null>(null)
+const custFilePreview = ref<string>('')
+
+const finalPrice = computed(() => {
+  let p = displayProduct.value.priceUSD
+  if (isPersonalized.value) p += CUSTOMIZATION_PRICE_USD
+  return p
+})
+
+function onFileSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (!target.files?.length) return
+  const file = target.files[0]
+  if (file.size > 5 * 1024 * 1024) {
+    toast.show('El archivo supera los 5MB limit', 'error')
+    return
+  }
+  custFile.value = file
+  if (custFilePreview.value) URL.revokeObjectURL(custFilePreview.value)
+  custFilePreview.value = URL.createObjectURL(file)
+}
+// ------------------------------
 
 // Related: same line, different id, max 4
 const related = computed(() => {
@@ -83,9 +99,11 @@ const related = computed(() => {
     .slice(0, 4)
 })
 
-const canAdd = computed(() =>
-  !!selectedColor.value && !!selectedSize.value && !!resolvedVariant.value
-)
+const canAdd = computed(() => {
+  if (!selectedColor.value || !selectedSize.value || !resolvedVariant.value) return false
+  if (isPersonalized.value && (!custPlacement.value || !custFile.value)) return false
+  return true
+})
 
 const CARE_BY_LINE: Record<string, CareData> = {
   'Polo Atelier': {
@@ -136,8 +154,11 @@ async function addToCart() {
     name: displayProduct.value.name,
     size: selectedSize.value,
     color: selectedColor.value,
-    priceUSD: displayProduct.value.priceUSD,
+    priceUSD: finalPrice.value,
     quantity: 1,
+    isPersonalized: isPersonalized.value,
+    customizationPlacement: custPlacement.value,
+    customizationFileUrl: custFilePreview.value,
   })
   addState.value = 'success'
   toast.show('Added to cart', 'success')
@@ -184,17 +205,77 @@ async function addToCart() {
         </div>
 
         <!-- Price -->
-        <p class="text-[length:var(--text-title)] font-light text-[color:var(--color-on-surface)]">
-          {{ formatPrice(displayProduct.priceUSD) }}
+        <p class="text-[length:var(--text-title)] font-light text-[color:var(--color-on-surface)] transition-colors">
+          {{ formatPrice(finalPrice) }}
         </p>
 
         <!-- Variant selector -->
         <VariantSelector
           ref="variantSelector"
-          :variants="displayProduct.variants"
+          :variants="allVariants"
           v-model:selectedColor="selectedColor"
           v-model:selectedSize="selectedSize"
         />
+
+        <!-- Personalization UI -->
+        <div class="border border-[color:var(--color-border)] p-5 mt-2 bg-[#0d0c0a] text-[color:var(--color-ivory)]">
+          <div class="flex items-center justify-between cursor-pointer" @click="isPersonalized = !isPersonalized">
+            <div>
+              <h3 class="text-[length:var(--text-small)] uppercase tracking-[var(--tracking-headline)] font-medium text-[#faf9f6]">
+                Personalize Garment
+              </h3>
+              <p class="text-[length:var(--text-micro)] text-[#faf9f6] opacity-60 mt-1">Upload your design (+{{ formatPrice(CUSTOMIZATION_PRICE_USD) }})</p>
+            </div>
+            <div class="w-10 h-6 rounded-full border border-[color:var(--color-obsidian)] bg-[#1a1714] p-1 flex items-center transition-all duration-300" :class="{ 'bg-[color:var(--color-obsidian)] border-[color:var(--color-amber-accent)]': isPersonalized }">
+              <div class="w-4 h-4 bg-white rounded-full transition-all duration-300 transform" :class="isPersonalized ? 'translate-x-4 bg-[color:var(--color-amber-accent)]' : 'opacity-40'"></div>
+            </div>
+          </div>
+
+          <div v-if="isPersonalized" class="mt-6 pt-6 border-t border-[color:var(--color-border)]/20 animate-fade-in space-y-5">
+            <!-- Placement Selection -->
+            <div>
+              <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[#faf9f6]/60 mb-3">Placement</p>
+              <div class="grid grid-cols-3 gap-3">
+                <button
+                  v-for="place in ['Chest (Left)', 'Chest (Right)', 'Back']" :key="place"
+                  @click="custPlacement = place"
+                  class="py-2.5 px-2 border text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] transition-colors text-center"
+                  :class="custPlacement === place ? 'border-[color:var(--color-amber-accent)] text-[#faf9f6] bg-[color:var(--color-amber-accent)]/10' : 'border-[#faf9f6]/10 text-[#faf9f6]/40 hover:text-[#faf9f6]/80'"
+                >
+                  {{ place }}
+                </button>
+              </div>
+            </div>
+            
+            <!-- File Upload -->
+            <div>
+              <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[#faf9f6]/60 mb-3">Design File (PNG, SVG)</p>
+              <div class="relative border-2 border-dashed border-[#faf9f6]/10 hover:border-[#faf9f6]/30 transition-colors bg-[#1a1714] p-6 text-center cursor-pointer group flex flex-col items-center justify-center min-h-[120px]">
+                <input type="file" accept=".png,.svg,.jpg,.jpeg" @change="onFileSelect" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                
+                <template v-if="custFilePreview">
+                  <div class="relative mb-3 flex flex-col items-center">
+                    <div class="bg-[color:var(--color-amber-accent)]/10 text-[color:var(--color-amber-accent)] w-10 h-10 rounded-full flex items-center justify-center mb-2">
+                       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <polyline points="20 6 9 17 4 12"/>
+                       </svg>
+                    </div>
+                    <button class="absolute -top-3 -right-3 sm:-right-8 bg-red-500/20 text-red-500 w-6 h-6 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500/40 transition-colors z-20" @click.stop="[custFile = null, custFilePreview = '']">×</button>
+                  </div>
+                  <p class="text-[length:var(--text-small)] font-medium text-[#faf9f6]">{{ custFile?.name }}</p>
+                  <p class="text-[length:var(--text-micro)] text-[#faf9f6]/40 mt-1">Tap to replace file</p>
+                </template>
+                <template v-else>
+                  <svg class="w-6 h-6 mb-3 text-[#faf9f6]/30 group-hover:text-[color:var(--color-amber-accent)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <p class="text-[length:var(--text-small)] text-[#faf9f6]/80">Drag and drop or click to upload</p>
+                  <p class="text-[length:var(--text-micro)] text-[#faf9f6]/40 mt-1">High-res PNG or SVG • Max 5MB</p>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Size guide link -->
         <button
@@ -253,8 +334,8 @@ async function addToCart() {
   </section>
 
   <!-- PDP storytelling sections -->
-  <ProductLookbook :line-name="displayProduct.line" />
   <CareInstructions :line-name="displayProduct.line" :care="currentCare" />
+  <ProductLookbook :line-name="displayProduct.line" />
   <RelatedProducts :related-lines="relatedLines" />
 
   <!-- Sticky Add to Cart — mobile only (shown at bottom on small screens) -->
@@ -265,7 +346,7 @@ async function addToCart() {
     >
       <div class="flex-1">
         <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">{{ displayProduct.name }}</p>
-        <p class="text-[length:var(--text-small)] font-medium">{{ formatPrice(displayProduct.priceUSD) }}</p>
+        <p class="text-[length:var(--text-small)] font-medium">{{ formatPrice(finalPrice) }}</p>
       </div>
       <button
         :disabled="!canAdd || addState !== 'idle'"

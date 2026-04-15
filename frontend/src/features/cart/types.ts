@@ -6,4 +6,7 @@ export interface CartItem {
   color: string
   priceUSD: number
   quantity: number
+  isPersonalized?: boolean
+  customizationPlacement?: string
+  customizationFileUrl?: string
 }

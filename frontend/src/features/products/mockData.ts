@@ -1,178 +1,227 @@
 import type { Product } from './types'
 
-// Color → CSS background mapping — palette: black / white / gold only
+// ─── Real Vantier color palette ───────────────────────────────────────────────
 export const COLOR_BG: Record<string, string> = {
-  'Ivory':      'oklch(97% 0.003 90)',   // white
-  'Obsidian':   'oklch(8%  0.005 250)',  // black
-  'Midnight':   'oklch(8%  0.005 250)',  // black
-  'Warm Beige': 'oklch(97% 0.003 90)',   // white
-  'Charcoal':   'oklch(8%  0.005 250)',  // black
+  // Signature
+  'Azul Vantier':    '#869AEB',
+  'Beige Verano':    '#E8E6D6',
+  'Naranja Vantier': '#F2955E',
+  'Blanca':          '#FFFFFF',
+  'Negra':           '#000000',
+  // Polo Atelier
+  'Beige Atelier':   '#C9BFA8',
+  'Azul Navy':       '#202646',
+  // Essential
+  'Azul Essential':  '#2D3FA6',
 }
 
 export const COLOR_TEXT: Record<string, string> = {
-  'Ivory':      'oklch(8%  0.005 250)',  // black on white
-  'Obsidian':   'oklch(97% 0.003 90)',   // white on black
-  'Midnight':   'oklch(97% 0.003 90)',   // white on black
-  'Warm Beige': 'oklch(8%  0.005 250)',  // black on white
-  'Charcoal':   'oklch(97% 0.003 90)',   // white on black
+  'Azul Vantier':    '#FFFFFF',
+  'Beige Verano':    '#000000',
+  'Naranja Vantier': '#FFFFFF',
+  'Blanca':          '#000000',
+  'Negra':           '#FFFFFF',
+  'Beige Atelier':   '#000000',
+  'Azul Navy':       '#FFFFFF',
+  'Azul Essential':  '#FFFFFF',
 }
 
 export const MOCK_PRODUCTS: Product[] = [
-  // ── Polo Atelier ──────────────────────────────────────────
+  // ── Polo Atelier ──────────────────────────────────────────────────────────
   {
-    id: 'pa-classic-ivory',
+    id: 'pa-classic-beige',
     name: 'Polo Atelier — Classic',
     line: 'Polo Atelier',
     style: 'Classic',
     priceUSD: 180,
     description: 'The cornerstone piece. Crafted from 100% Pima cotton with a structured collar and refined silhouette.',
     images: [
-      { id: 'pa-ci-img1', url: '/images/Products/polo-atelier-beige-folded.jpg',    alt: 'Polo Atelier Classic — Ivory, folded', isPrimary: true  },
-      { id: 'pa-ci-img2', url: '/images/Products/polo-atelier-jackets-stacked.jpg', alt: 'Polo Atelier — color range',            isPrimary: false },
+      { id: 'pa-cb-img1', url: '/images/Products/polo-atelier-beige-folded.jpg',    alt: 'Polo Atelier — Beige Atelier', isPrimary: true  },
+      { id: 'pa-cb-img2', url: '/images/Products/polo-atelier-jackets-stacked.jpg', alt: 'Polo Atelier — color range',   isPrimary: false },
     ],
     variants: [
-      { id: 'pa-ci-s',  sku: 'PA-CL-IVY-S',  size: 'S',  color: 'Ivory',    stock: 12 },
-      { id: 'pa-ci-m',  sku: 'PA-CL-IVY-M',  size: 'M',  color: 'Ivory',    stock: 8  },
-      { id: 'pa-ci-l',  sku: 'PA-CL-IVY-L',  size: 'L',  color: 'Ivory',    stock: 3  },
-      { id: 'pa-ci-xl', sku: 'PA-CL-IVY-XL', size: 'XL', color: 'Ivory',    stock: 6  },
+      { id: 'pa-cb-s',  sku: 'PA-CL-BEI-S',  size: 'S',  color: 'Beige Atelier', stock: 12 },
+      { id: 'pa-cb-m',  sku: 'PA-CL-BEI-M',  size: 'M',  color: 'Beige Atelier', stock: 8  },
+      { id: 'pa-cb-l',  sku: 'PA-CL-BEI-L',  size: 'L',  color: 'Beige Atelier', stock: 3  },
+      { id: 'pa-cb-xl', sku: 'PA-CL-BEI-XL', size: 'XL', color: 'Beige Atelier', stock: 6  },
     ],
   },
   {
-    id: 'pa-classic-obsidian',
+    id: 'pa-classic-navy',
     name: 'Polo Atelier — Classic',
     line: 'Polo Atelier',
     style: 'Classic',
     priceUSD: 180,
     description: 'The cornerstone piece. Crafted from 100% Pima cotton with a structured collar and refined silhouette.',
     images: [
-      { id: 'pa-co-img1', url: '/images/Products/polo-atelier-jackets-stacked.jpg', alt: 'Polo Atelier Classic — Obsidian', isPrimary: true  },
-      { id: 'pa-co-img2', url: '/images/Products/polo-atelier-lifestyle.jpg',        alt: 'Polo Atelier lifestyle',          isPrimary: false },
+      { id: 'pa-cn-img1', url: '/images/Products/polo-atelier-jackets-stacked.jpg', alt: 'Polo Atelier — Azul Navy', isPrimary: true  },
+      { id: 'pa-cn-img2', url: '/images/Products/polo-atelier-lifestyle.jpg',        alt: 'Polo Atelier lifestyle',  isPrimary: false },
     ],
     variants: [
-      { id: 'pa-co-s',  sku: 'PA-CL-OBS-S',  size: 'S',  color: 'Obsidian', stock: 10 },
-      { id: 'pa-co-m',  sku: 'PA-CL-OBS-M',  size: 'M',  color: 'Obsidian', stock: 6  },
-      { id: 'pa-co-l',  sku: 'PA-CL-OBS-L',  size: 'L',  color: 'Obsidian', stock: 0  },
-      { id: 'pa-co-xl', sku: 'PA-CL-OBS-XL', size: 'XL', color: 'Obsidian', stock: 4  },
+      { id: 'pa-cn-s',  sku: 'PA-CL-NAV-S',  size: 'S',  color: 'Azul Navy', stock: 10 },
+      { id: 'pa-cn-m',  sku: 'PA-CL-NAV-M',  size: 'M',  color: 'Azul Navy', stock: 6  },
+      { id: 'pa-cn-l',  sku: 'PA-CL-NAV-L',  size: 'L',  color: 'Azul Navy', stock: 0  },
+      { id: 'pa-cn-xl', sku: 'PA-CL-NAV-XL', size: 'XL', color: 'Azul Navy', stock: 4  },
     ],
   },
   {
-    id: 'pa-design-obsidian',
-    name: 'Polo Atelier — Design',
+    id: 'pa-classic-negra',
+    name: 'Polo Atelier — Classic',
     line: 'Polo Atelier',
-    style: 'Design',
-    priceUSD: 195,
-    description: 'Architectural collar construction. Contrast stitching detail. A study in controlled asymmetry.',
+    style: 'Classic',
+    priceUSD: 180,
+    description: 'The cornerstone piece. Crafted from 100% Pima cotton with a structured collar and refined silhouette.',
     images: [
-      { id: 'pa-do-img1', url: '/images/Products/polo-atelier-lifestyle.jpg',        alt: 'Polo Atelier Design — lifestyle',   isPrimary: true  },
-      { id: 'pa-do-img2', url: '/images/Products/polo-atelier-jackets-stacked.jpg',  alt: 'Polo Atelier — color range',        isPrimary: false },
+      { id: 'pa-co-img1', url: '/images/Products/polo-atelier-jackets-stacked.jpg', alt: 'Polo Atelier — Negra',   isPrimary: true  },
+      { id: 'pa-co-img2', url: '/images/Products/polo-atelier-lifestyle.jpg',        alt: 'Polo Atelier lifestyle', isPrimary: false },
     ],
     variants: [
-      { id: 'pa-do-m',  sku: 'PA-DS-OBS-M',  size: 'M',  color: 'Obsidian', stock: 9 },
-      { id: 'pa-do-l',  sku: 'PA-DS-OBS-L',  size: 'L',  color: 'Obsidian', stock: 3 },
-      { id: 'pa-do-xl', sku: 'PA-DS-OBS-XL', size: 'XL', color: 'Obsidian', stock: 1 },
+      { id: 'pa-co-s',  sku: 'PA-CL-NEG-S',  size: 'S',  color: 'Negra', stock: 9  },
+      { id: 'pa-co-m',  sku: 'PA-CL-NEG-M',  size: 'M',  color: 'Negra', stock: 7  },
+      { id: 'pa-co-l',  sku: 'PA-CL-NEG-L',  size: 'L',  color: 'Negra', stock: 3  },
+      { id: 'pa-co-xl', sku: 'PA-CL-NEG-XL', size: 'XL', color: 'Negra', stock: 5  },
     ],
   },
+
+  // ── Signature ─────────────────────────────────────────────────────────────
   {
-    id: 'pa-design-midnight',
-    name: 'Polo Atelier — Design',
-    line: 'Polo Atelier',
-    style: 'Design',
-    priceUSD: 195,
-    description: 'Architectural collar construction. Contrast stitching detail. A study in controlled asymmetry.',
-    images: [
-      { id: 'pa-dm-img1', url: '/images/Products/polo-atelier-jackets-stacked.jpg', alt: 'Polo Atelier Design — Midnight', isPrimary: true },
-    ],
-    variants: [
-      { id: 'pa-dm-m', sku: 'PA-DS-MID-M', size: 'M', color: 'Midnight', stock: 7 },
-      { id: 'pa-dm-l', sku: 'PA-DS-MID-L', size: 'L', color: 'Midnight', stock: 5 },
-    ],
-  },
-  // ── Signature ─────────────────────────────────────────────
-  {
-    id: 'sig-design-midnight',
+    id: 'sig-azul-vantier',
     name: 'Signature Shirt',
     line: 'Signature',
     style: 'Design',
     priceUSD: 220,
     description: 'Impeccably tailored. Woven from premium long-staple Egyptian cotton for a drape that commands presence.',
     images: [
-      { id: 'sig-img1', url: '/images/Products/signature-lifestyle.jpg',      alt: 'Signature Shirt — lifestyle',    isPrimary: true  },
-      { id: 'sig-img2', url: '/images/Products/signature-shirts-stacked.jpg', alt: 'Signature — color range',        isPrimary: false },
+      { id: 'sig-az-img1', url: '/images/Products/signature-lifestyle.jpg',      alt: 'Signature — Azul Vantier', isPrimary: true  },
+      { id: 'sig-az-img2', url: '/images/Products/signature-shirts-stacked.jpg', alt: 'Signature — color range',  isPrimary: false },
     ],
     variants: [
-      { id: 'sig-m',  sku: 'SIG-DS-MID-M',  size: 'M',  color: 'Midnight', stock: 7 },
-      { id: 'sig-l',  sku: 'SIG-DS-MID-L',  size: 'L',  color: 'Midnight', stock: 4 },
-      { id: 'sig-xl', sku: 'SIG-DS-MID-XL', size: 'XL', color: 'Midnight', stock: 2 },
+      { id: 'sig-az-s',  sku: 'SIG-AZ-S',  size: 'S',  color: 'Azul Vantier', stock: 8 },
+      { id: 'sig-az-m',  sku: 'SIG-AZ-M',  size: 'M',  color: 'Azul Vantier', stock: 6 },
+      { id: 'sig-az-l',  sku: 'SIG-AZ-L',  size: 'L',  color: 'Azul Vantier', stock: 4 },
+      { id: 'sig-az-xl', sku: 'SIG-AZ-XL', size: 'XL', color: 'Azul Vantier', stock: 2 },
     ],
   },
   {
-    id: 'sig-classic-ivory',
-    name: 'Signature Shirt — Classic',
+    id: 'sig-beige-verano',
+    name: 'Signature Shirt',
     line: 'Signature',
     style: 'Classic',
     priceUSD: 205,
     description: 'The everyday formal. Crisp cotton poplin with a refined spread collar. Effortlessly pristine.',
     images: [
-      { id: 'sigc-img1', url: '/images/Products/signature-blazer-street.jpg',    alt: 'Signature Classic — street editorial', isPrimary: true  },
-      { id: 'sigc-img2', url: '/images/Products/signature-blazer-lifestyle.jpg', alt: 'Signature Classic — lifestyle',        isPrimary: false },
-      { id: 'sigc-img3', url: '/images/Products/signature-shirts-stacked.jpg',   alt: 'Signature — color range',              isPrimary: false },
+      { id: 'sig-be-img1', url: '/images/Products/signature-blazer-street.jpg',    alt: 'Signature — Beige Verano', isPrimary: true  },
+      { id: 'sig-be-img2', url: '/images/Products/signature-blazer-lifestyle.jpg', alt: 'Signature — lifestyle',    isPrimary: false },
     ],
     variants: [
-      { id: 'sigc-s', sku: 'SIG-CL-IVY-S', size: 'S', color: 'Ivory', stock: 15 },
-      { id: 'sigc-m', sku: 'SIG-CL-IVY-M', size: 'M', color: 'Ivory', stock: 12 },
-      { id: 'sigc-l', sku: 'SIG-CL-IVY-L', size: 'L', color: 'Ivory', stock: 8  },
+      { id: 'sig-be-s',  sku: 'SIG-BE-S',  size: 'S',  color: 'Beige Verano', stock: 10 },
+      { id: 'sig-be-m',  sku: 'SIG-BE-M',  size: 'M',  color: 'Beige Verano', stock: 8  },
+      { id: 'sig-be-l',  sku: 'SIG-BE-L',  size: 'L',  color: 'Beige Verano', stock: 5  },
     ],
   },
-  // ── Essential ─────────────────────────────────────────────
   {
-    id: 'ess-classic-ivory',
+    id: 'sig-naranja-vantier',
+    name: 'Signature Shirt',
+    line: 'Signature',
+    style: 'Design',
+    priceUSD: 220,
+    description: 'Arquitectura de color. Una declaración de presencia sin esfuerzo en algodón egipcio de primera calidad.',
+    images: [
+      { id: 'sig-na-img1', url: '/images/Products/signature-lifestyle.jpg',      alt: 'Signature — Naranja Vantier', isPrimary: true  },
+      { id: 'sig-na-img2', url: '/images/Products/signature-shirts-stacked.jpg', alt: 'Signature — color range',     isPrimary: false },
+    ],
+    variants: [
+      { id: 'sig-na-s',  sku: 'SIG-NA-S',  size: 'S',  color: 'Naranja Vantier', stock: 6 },
+      { id: 'sig-na-m',  sku: 'SIG-NA-M',  size: 'M',  color: 'Naranja Vantier', stock: 5 },
+      { id: 'sig-na-l',  sku: 'SIG-NA-L',  size: 'L',  color: 'Naranja Vantier', stock: 3 },
+    ],
+  },
+  {
+    id: 'sig-blanca',
+    name: 'Signature Shirt',
+    line: 'Signature',
+    style: 'Classic',
+    priceUSD: 205,
+    description: 'The everyday formal. Crisp cotton poplin with a refined spread collar. Effortlessly pristine.',
+    images: [
+      { id: 'sig-bl-img1', url: '/images/Products/signature-blazer-street.jpg', alt: 'Signature — Blanca', isPrimary: true },
+    ],
+    variants: [
+      { id: 'sig-bl-s',  sku: 'SIG-BL-S',  size: 'S',  color: 'Blanca', stock: 15 },
+      { id: 'sig-bl-m',  sku: 'SIG-BL-M',  size: 'M',  color: 'Blanca', stock: 12 },
+      { id: 'sig-bl-l',  sku: 'SIG-BL-L',  size: 'L',  color: 'Blanca', stock: 8  },
+      { id: 'sig-bl-xl', sku: 'SIG-BL-XL', size: 'XL', color: 'Blanca', stock: 4  },
+    ],
+  },
+  {
+    id: 'sig-negra',
+    name: 'Signature Shirt',
+    line: 'Signature',
+    style: 'Classic',
+    priceUSD: 205,
+    description: 'The everyday formal. Crisp cotton poplin with a refined spread collar. Effortlessly pristine.',
+    images: [
+      { id: 'sig-ne-img1', url: '/images/Products/signature-lifestyle.jpg', alt: 'Signature — Negra', isPrimary: true },
+    ],
+    variants: [
+      { id: 'sig-ne-s',  sku: 'SIG-NE-S',  size: 'S',  color: 'Negra', stock: 10 },
+      { id: 'sig-ne-m',  sku: 'SIG-NE-M',  size: 'M',  color: 'Negra', stock: 8  },
+      { id: 'sig-ne-l',  sku: 'SIG-NE-L',  size: 'L',  color: 'Negra', stock: 4  },
+      { id: 'sig-ne-xl', sku: 'SIG-NE-XL', size: 'XL', color: 'Negra', stock: 2  },
+    ],
+  },
+
+  // ── Essential ─────────────────────────────────────────────────────────────
+  {
+    id: 'ess-azul-essential',
     name: 'Essential Tee',
     line: 'Essential',
     style: 'Classic',
     priceUSD: 95,
     description: 'The everyday foundation. Supima cotton, relaxed silhouette. Understated by design.',
     images: [
-      { id: 'ess-ci-img1', url: '/images/Products/essential-white.jpg', alt: 'Essential Tee — Ivory', isPrimary: true },
+      { id: 'ess-az-img1', url: '/images/Products/essential-blue-tees.jpg',   alt: 'Essential Tee — Azul',    isPrimary: true  },
+      { id: 'ess-az-img2', url: '/images/Products/essential-blue-detail.jpg', alt: 'Essential Tee — detalle', isPrimary: false },
     ],
     variants: [
-      { id: 'ess-ci-s',  sku: 'ESS-CL-IVY-S',  size: 'S',  color: 'Ivory', stock: 20 },
-      { id: 'ess-ci-m',  sku: 'ESS-CL-IVY-M',  size: 'M',  color: 'Ivory', stock: 15 },
-      { id: 'ess-ci-l',  sku: 'ESS-CL-IVY-L',  size: 'L',  color: 'Ivory', stock: 10 },
-      { id: 'ess-ci-xl', sku: 'ESS-CL-IVY-XL', size: 'XL', color: 'Ivory', stock: 5  },
+      { id: 'ess-az-s',  sku: 'ESS-AZ-S',  size: 'S',  color: 'Azul Essential', stock: 18 },
+      { id: 'ess-az-m',  sku: 'ESS-AZ-M',  size: 'M',  color: 'Azul Essential', stock: 14 },
+      { id: 'ess-az-l',  sku: 'ESS-AZ-L',  size: 'L',  color: 'Azul Essential', stock: 10 },
+      { id: 'ess-az-xl', sku: 'ESS-AZ-XL', size: 'XL', color: 'Azul Essential', stock: 6  },
     ],
   },
   {
-    id: 'ess-classic-warmbeige',
+    id: 'ess-negra',
     name: 'Essential Tee',
     line: 'Essential',
     style: 'Classic',
     priceUSD: 95,
     description: 'The everyday foundation. Supima cotton, relaxed silhouette. Understated by design.',
     images: [
-      { id: 'ess-wb-img1', url: '/images/Products/essential-white.jpg',    alt: 'Essential Tee — Warm Beige',   isPrimary: true  },
-      { id: 'ess-wb-img2', url: '/images/Products/essential-blue-tees.jpg', alt: 'Essential Tee — color range', isPrimary: false },
+      { id: 'ess-ne-img1', url: '/images/Products/essential-blue-tees.jpg', alt: 'Essential Tee — Negra', isPrimary: true },
     ],
     variants: [
-      { id: 'ess-wb-s', sku: 'ESS-CL-WB-S', size: 'S', color: 'Warm Beige', stock: 8 },
-      { id: 'ess-wb-m', sku: 'ESS-CL-WB-M', size: 'M', color: 'Warm Beige', stock: 4 },
-      { id: 'ess-wb-l', sku: 'ESS-CL-WB-L', size: 'L', color: 'Warm Beige', stock: 2 },
+      { id: 'ess-ne-s',  sku: 'ESS-NE-S',  size: 'S',  color: 'Negra', stock: 20 },
+      { id: 'ess-ne-m',  sku: 'ESS-NE-M',  size: 'M',  color: 'Negra', stock: 15 },
+      { id: 'ess-ne-l',  sku: 'ESS-NE-L',  size: 'L',  color: 'Negra', stock: 10 },
+      { id: 'ess-ne-xl', sku: 'ESS-NE-XL', size: 'XL', color: 'Negra', stock: 5  },
     ],
   },
   {
-    id: 'ess-classic-obsidian',
+    id: 'ess-blanca',
     name: 'Essential Tee',
     line: 'Essential',
     style: 'Classic',
     priceUSD: 95,
     description: 'The everyday foundation. Supima cotton, relaxed silhouette. Understated by design.',
     images: [
-      { id: 'ess-ob-img1', url: '/images/Products/essential-blue-tees.jpg',   alt: 'Essential Tee — Obsidian',    isPrimary: true  },
-      { id: 'ess-ob-img2', url: '/images/Products/essential-blue-detail.jpg',  alt: 'Essential Tee — logo detail', isPrimary: false },
+      { id: 'ess-bl-img1', url: '/images/Products/essential-white.jpg', alt: 'Essential Tee — Blanca', isPrimary: true },
     ],
     variants: [
-      { id: 'ess-ob-s', sku: 'ESS-CL-OBS-S', size: 'S', color: 'Obsidian', stock: 18 },
-      { id: 'ess-ob-m', sku: 'ESS-CL-OBS-M', size: 'M', color: 'Obsidian', stock: 14 },
-      { id: 'ess-ob-l', sku: 'ESS-CL-OBS-L', size: 'L', color: 'Obsidian', stock: 9  },
+      { id: 'ess-bl-s',  sku: 'ESS-BL-S',  size: 'S',  color: 'Blanca', stock: 20 },
+      { id: 'ess-bl-m',  sku: 'ESS-BL-M',  size: 'M',  color: 'Blanca', stock: 16 },
+      { id: 'ess-bl-l',  sku: 'ESS-BL-L',  size: 'L',  color: 'Blanca', stock: 12 },
+      { id: 'ess-bl-xl', sku: 'ESS-BL-XL', size: 'XL', color: 'Blanca', stock: 7  },
     ],
   },
 ]

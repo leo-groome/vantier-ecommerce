@@ -70,3 +70,8 @@ venv.bak/
 node_modules/
 dist/
 .DS_Store
+
+# Product images & zips (large binary assets managed outside git)
+frontend/public/images/
+*.zip
+*.ZIP

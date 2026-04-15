@@ -2,7 +2,7 @@
 import { RouterLink } from 'vue-router'
 import { useCartStore } from '@features/cart/store'
 import FreeShippingBar from '@shared/components/FreeShippingBar.vue'
-import DiscountCodeInput from './DiscountCodeInput.vue'
+
 
 const cart = useCartStore()
 
@@ -15,7 +15,7 @@ function formatPrice(n: number) {
   <div class="border-t border-[color:var(--color-border)] pt-4 space-y-4">
     <FreeShippingBar />
 
-    <DiscountCodeInput />
+
 
     <div class="space-y-2 pt-2">
       <div class="flex justify-between text-[length:var(--text-small)] text-[color:var(--color-on-surface)]">

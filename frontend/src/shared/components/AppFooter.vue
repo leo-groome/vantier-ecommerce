@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const newsletterUrl = 'https://vantierluxuryla.com/newsletter'
+const newsletterUrl = 'https://lasilentluxury.substack.com/'
 </script>
 
 <template>
@@ -12,7 +12,11 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter'
 
       <!-- Left: Brand -->
       <div class="flex flex-col gap-4">
-        <p class="text-[length:var(--text-small)] font-bold uppercase tracking-[var(--tracking-display)]">Vantier</p>
+        <img
+          src="/Logos y tipografia/LOGOTIPO BLANCO VANTIER.svg"
+          alt="Vantier"
+          class="h-6 w-auto mb-2"
+        />
         <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-40 leading-relaxed">
           Los Angeles — México
         </p>
@@ -60,21 +64,40 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter'
         </div>
 
         <!-- Social -->
-        <div class="flex items-center gap-3">
-          <a
-            href="https://instagram.com/vantierluxuryla"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="opacity-40 hover:opacity-100 transition-opacity duration-[var(--duration-fast)]"
-            aria-label="Instagram"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-              <circle cx="12" cy="12" r="4"/>
-              <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/>
-            </svg>
-          </a>
-          <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-30">@vantierluxuryla</span>
+        <div class="flex flex-col gap-3">
+          <!-- Instagram -->
+          <div class="flex items-center gap-3">
+            <a
+              href="https://www.instagram.com/vantier_worldwide?igsh=MW1hZWFtaXpsOXk5Zw%3D%3D&utm_source=qr"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="opacity-40 hover:opacity-100 transition-opacity duration-[var(--duration-fast)]"
+              aria-label="Instagram"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                <circle cx="12" cy="12" r="4"/>
+                <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/>
+              </svg>
+            </a>
+            <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-30">@vantier_worldwide</span>
+          </div>
+          <!-- LinkedIn -->
+          <div class="flex items-center gap-3">
+            <a
+              href="https://linkedin.com/in/vantier-silent-luxury-3993823b1"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="opacity-40 hover:opacity-100 transition-opacity duration-[var(--duration-fast)]"
+              aria-label="LinkedIn"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="2" width="20" height="20" rx="4" ry="4"/>
+                <path d="M8 11v5M8 8v.01M12 16v-5M12 11a3 3 0 0 1 6 0v5M18 16v-5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-30">Vantier Silent Luxury</span>
+          </div>
         </div>
       </div>
     </div>

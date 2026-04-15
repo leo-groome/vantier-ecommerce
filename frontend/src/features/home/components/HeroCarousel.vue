@@ -57,7 +57,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="relative w-full h-[90vh] min-h-[560px] overflow-hidden select-none">
+  <section class="relative w-full h-screen min-h-[560px] overflow-hidden select-none">
     <TransitionGroup name="hero-slide">
       <div
         v-for="(slide, i) in slides"

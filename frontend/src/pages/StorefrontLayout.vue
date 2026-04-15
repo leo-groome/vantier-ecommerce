@@ -18,10 +18,9 @@ watch(() => route.path, () => { mobileMenuOpen.value = false; cartOpen.value = f
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/shop', label: 'Shop' },
-  { to: '/about', label: 'About' },
 ]
 
-const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with real URL when known
+const newsletterUrl = 'https://lasilentluxury.substack.com/'
 </script>
 <template>
   <div class="min-h-screen flex flex-col bg-[color:var(--color-surface)] text-[color:var(--color-on-surface)]">
@@ -30,16 +29,9 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
 
     <!-- Nav -->
     <header class="sticky top-0 z-40 border-b border-[color:var(--color-amber-accent)]/8 bg-[color:var(--color-obsidian)]">
-      <div class="max-w-[var(--container-max)] mx-auto px-[var(--spacing-container)] h-16 flex items-center justify-between">
-        <!-- Logo -->
-        <RouterLink
-          to="/"
-          class="text-[length:var(--text-small)] font-bold uppercase tracking-[var(--tracking-display)] text-[color:var(--color-ivory)] hover:opacity-70 transition-opacity duration-[var(--duration-fast)]"
-        >
-          Vantier
-        </RouterLink>
+      <div class="relative max-w-[var(--container-max)] mx-auto px-[var(--spacing-container)] h-16 flex items-center justify-between">
 
-        <!-- Desktop nav links -->
+        <!-- Left: Desktop nav links -->
         <nav class="hidden md:flex items-center gap-8" aria-label="Main navigation">
           <RouterLink
             v-for="link in navLinks"
@@ -52,17 +44,21 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
           </RouterLink>
         </nav>
 
+        <!-- Center: Logo (absolute so it's truly centered) -->
+        <RouterLink
+          to="/"
+          class="absolute left-1/2 -translate-x-1/2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)]"
+          aria-label="Vantier — Home"
+        >
+          <img
+            src="/Logos y tipografia/LOGOTIPO BLANCO VANTIER.svg"
+            alt="Vantier"
+            class="h-5 w-auto"
+          />
+        </RouterLink>
+
         <!-- Right actions -->
-        <div class="flex items-center gap-4">
-          <!-- Newsletter external link -->
-          <a
-            :href="newsletterUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hidden md:inline-flex text-[length:var(--text-small)] font-medium uppercase tracking-[var(--tracking-label)] text-[color:var(--color-amber-accent)]/80 hover:text-[color:var(--color-amber-accent)] border-b border-[color:var(--color-amber-accent)]/30 hover:border-[color:var(--color-amber-accent)] pb-px transition-all duration-[var(--duration-fast)]"
-          >
-            Newsletter — 15% off
-          </a>
+        <div class="flex items-center gap-4 ml-auto">
 
           <!-- Cart icon -->
           <button class="relative p-2 hover:opacity-70 transition-opacity duration-[var(--duration-fast)] text-[color:var(--color-ivory)]" aria-label="Open cart" @click="cartOpen = true">
@@ -73,7 +69,7 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
               <span
                 v-if="cart.totalItems > 0"
                 :key="cart.totalItems"
-                class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[color:var(--color-amber-accent)] text-[color:var(--color-obsidian)] text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[color:var(--color-amber-accent)] text-[color:var(--color-obsidian)] text-[10px] font-bold flex items-center justify-center"
               >
                 {{ cart.totalItems > 9 ? '9+' : cart.totalItems }}
               </span>
@@ -117,14 +113,7 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
           >
             {{ link.label }}
           </RouterLink>
-          <a
-            :href="newsletterUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-[length:var(--text-title)] font-light uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-amber-accent)]/70 hover:text-[color:var(--color-amber-accent)] transition-colors duration-[var(--duration-fast)]"
-          >
-            Newsletter — 15% off
-          </a>
+
         </nav>
       </Transition>
     </header>
@@ -132,13 +121,15 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
     <!-- Main content -->
     <main class="flex-1">
       <RouterView v-slot="{ Component, route }">
-        <Transition :name="route.meta.transition as string ?? 'page'" mode="out-in">
-          <component :is="Component" :key="route.path" />
+        <Transition :name="(route.meta.transition as string) ?? 'page'" mode="out-in">
+          <div :key="route.path">
+            <component :is="Component" />
+          </div>
         </Transition>
       </RouterView>
     </main>
 
-    <!-- Footer -->
+    <!-- Footer: naturally below all full-screen sections, only reached on scroll -->
     <AppFooter />
   </div>
 
@@ -146,6 +137,27 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
   <Teleport to="body">
     <CartDrawer :open="cartOpen" @close="cartOpen = false" />
   </Teleport>
+
+  <!-- Floating Newsletter Button -->
+  <a
+    :href="newsletterUrl"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="newsletter-float fixed bottom-6 right-6 z-40 group flex items-center gap-3 pl-6 pr-7 py-3 bg-[color:var(--color-amber-accent)] border border-[color:var(--color-amber-accent)] text-[color:var(--color-obsidian)] transition-all duration-300 hover:bg-[color:var(--color-obsidian)] hover:text-[color:var(--color-amber-accent)] hover:shadow-[0_0_24px_rgba(184,142,70,0.3)] hover:scale-[1.03]"
+    style="border-radius: 2px;"
+  >
+    <!-- Envelope icon -->
+    <svg class="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="m2 7 10 7 10-7" stroke-linecap="round"/>
+    </svg>
+    <!-- Label -->
+    <span class="text-[10px] font-semibold uppercase tracking-[0.2em] leading-none whitespace-nowrap">
+      Newsletter
+      <span class="opacity-40 mx-1">·</span>
+      15% off
+    </span>
+  </a>
 
   <!-- Toast notifications -->
   <ToastContainer />
@@ -173,4 +185,13 @@ const newsletterUrl = 'https://vantierluxuryla.com/newsletter' // replace with r
 }
 .page-enter-from { opacity: 0; transform: translateY(10px); }
 .page-leave-to  { opacity: 0; transform: translateY(-4px); }
+
+/* Floating newsletter button entrance */
+.newsletter-float {
+  animation: float-in 600ms 800ms cubic-bezier(0.25, 0.1, 0.1, 1) both;
+}
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 </style>
