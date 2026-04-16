@@ -380,7 +380,7 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 
 All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2.7**
 
-> **Test suite:** 71 tests passing as of 2026-04-14. Run with:
+> **Test suite:** 85 tests passing as of 2026-04-16. Run with:
 > `pyenv exec python -m pytest -q`
 
 #### 2.1 Products slice (`src/features/products/`) ✅ COMPLETE
@@ -513,6 +513,6 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 
 ---
 
-*PRD Version: 2.2 — April 2026*
+*PRD Version: 2.3 — April 2026*
 *Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS*
-*Phase 1 complete. Phase 2 in progress: 2.1, 2.2, 2.3, 2.8 done (71 tests). Next: 2.5 Integrations → 2.4 Orders → 2.6 POs → 2.7 Exchanges.*
+*Phase 1 complete. Phase 2 in progress: 2.1, 2.2, 2.3, 2.4, 2.5, 2.8 done (85 tests). Next: 2.6 Purchase Orders → 2.7 Exchanges → Phase 3 Frontend.*
