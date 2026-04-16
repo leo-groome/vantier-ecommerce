@@ -75,3 +75,4 @@ dist/
 frontend/public/images/
 *.zip
 *.ZIP
+*.pyc
