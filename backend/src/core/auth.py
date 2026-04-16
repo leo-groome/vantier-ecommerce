@@ -6,10 +6,16 @@ caches it in memory. Keys are refreshed automatically on verification failure
 
 Neon Auth uses EdDSA (Ed25519 / OKP key type) — PyJWT is used instead of
 python-jose because jose 3.x does not support OKP keys.
+
+DEV BYPASS:
+  Only active when ENABLE_DEV_AUTH=true is set in the environment.
+  This var must NEVER be set in production or staging. It is intended
+  exclusively for local pytest runs that do not hit external services.
 """
 
 import base64
 import logging
+import os
 from typing import Any
 
 import httpx
@@ -18,6 +24,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from src.core.config import get_settings
 from src.core.exceptions import UnauthorizedException
+
+# Guard: read once at module load. Requires explicit opt-in; not toggled by ENVIRONMENT.
+_DEV_AUTH_ENABLED = os.getenv("ENABLE_DEV_AUTH", "false").lower() == "true"
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +95,16 @@ async def verify_token(token: str) -> dict[str, Any]:
             be verified against the cached JWKS.
     """
     settings = get_settings()
+
+    # ---- DEV BYPASS (pytest only) ----
+    # Requires ENABLE_DEV_AUTH=true in env. Never expose in production/staging.
+    if _DEV_AUTH_ENABLED and token.startswith("dev_token_"):
+        if settings.is_production:
+            raise UnauthorizedException("Dev bypass forbidden in production")
+        neon_id = token.replace("dev_token_", "")
+        logger.warning("DEV AUTH BYPASS used for neon_id=%s — not for production use", neon_id)
+        return {"sub": neon_id, "email": "dev@vantier.com"}
+    # -----------------------------------
 
     if not _jwks_cache:
         await _fetch_jwks()

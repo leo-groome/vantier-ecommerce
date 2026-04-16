@@ -29,6 +29,7 @@ def get_engine() -> AsyncEngine:
             pool_size=5,
             max_overflow=10,
             echo=not settings.is_production,
+            connect_args={"statement_cache_size": 0},
         )
     return _engine
 

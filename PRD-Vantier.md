@@ -318,10 +318,33 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 - Printable as PDF barcode label from admin panel
 
 ### Authentication
-- All JWT tokens issued and verified via **Neon Auth** (JWKS endpoint)
+- All JWT tokens issued and verified via **Neon Auth** (JWKS endpoint, Ed25519/OKP keys)
 - Admin roles (`owner`, `operative`) stored in `admin_users` table, keyed by Neon Auth user ID
-- Storefront customers authenticated via Neon Auth; their user IDs stored as strings on orders/addresses (no FK — customers are not in `admin_users`)
+- Storefront customers authenticated via Neon Auth; their user IDs stored as strings on orders/addresses (no FK)
 - Guest checkout supported (`neon_auth_user_id` nullable on orders)
+
+#### Auth Architecture Notes (Recorded 2026-04-14)
+
+**Flow de producción correcto:**
+1. Frontend Vue usa `@neondatabase/neon-auth` SDK para sign-in/sign-up.
+2. SDK emite una *cookie de sesión opaca* internamente (Better Auth).
+3. Frontend llama `authClient.getToken()` que intercambia la sesión por un **JWT real (`eyJ...`)**.
+4. Vue envía ese JWT como `Authorization: Bearer <token>` en cada request a FastAPI.
+5. FastAPI valida contra JWKS. Cero contraseñas en el backend.
+
+**Por qué el script CLI no emite JWT directamente:**
+- Neon Auth usa Better Auth internamente. El endpoint `/sign-in/email` retorna un *token de sesión opaco* (no un JWT).
+- El intercambio sesión → JWT (`GET /token`) requiere una cookie de browser activa con binding de sesión completo. No funciona desde CLI/Postman por diseño de seguridad de Better Auth.
+- Esto es correcto y esperado. El JWT se obtiene solo a través del SDK del browser.
+
+**Dev bypass (local únicamente):**
+- `ENABLE_DEV_AUTH=true` en `.env` activa tokens `dev_token_<neon_id>` para QA sin red.
+- **NUNCA se debe poner en `.env` de producción o staging.**
+- El bypass está bloqueado a nivel de código si `ENVIRONMENT=production`.
+- Para Swagger local: `dev_token_e552ac1b-527c-4237-a6b0-08821d854a59` (owner seeded).
+- ⚠️ El dev bypass requiere que el proceso haya arrancado con `ENABLE_DEV_AUTH=true` — si Uvicorn arrancó antes de agregarlo al `.env`, reiniciar el servidor.
+
+**Validación de auth real:** Se realizará en Fase 3 (Vue.js) con el SDK de Neon Auth.
 
 ---
 
@@ -357,8 +380,8 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 
 All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2.7**
 
-> **Test suite:** 65 tests passing as of last session. Run with:
-> `~/.pyenv/versions/vantier-backend/bin/python -m pytest -q`
+> **Test suite:** 71 tests passing as of 2026-04-14. Run with:
+> `pyenv exec python -m pytest -q`
 
 #### 2.1 Products slice (`src/features/products/`) ✅ COMPLETE
 - [x] Pydantic schemas: `ProductCreate`, `ProductUpdate`, `ProductResponse`, `VariantCreate`, `VariantResponse`
@@ -381,12 +404,14 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 
 ---
 
-#### 2.8 Users slice (`src/features/users/`) ⏳ NEXT
-> **Why first:** Unlocks real JWT tokens for all protected endpoints. Needed to manually QA everything.
-- [ ] Schemas: `AdminUserInvite`, `AdminUserResponse`, `AdminRoleUpdate`
-- [ ] Service: list admins, deactivate, role update (owner-only), self-registration on first login
-- [ ] Router: `GET /users`, `POST /users/invite`, `PATCH /users/{id}`, `DELETE /users/{id}`
-- [ ] Seed script: `scripts/seed_owner.py` — creates first owner row from Neon Auth user ID
+#### 2.8 Users slice (`src/features/users/`) ✅ COMPLETE
+- [x] Schemas: `AdminUserInvite`, `AdminUserResponse`, `AdminRoleUpdate`, `SelfRegisterRequest`
+- [x] Service: list admins, deactivate (self-guard), role update (owner-only), bootstrap first owner
+- [x] Router: `GET /users`, `POST /users/invite`, `PATCH /users/{id}`, `DELETE /users/{id}` (all Owner-only)
+- [x] Seed script: `scripts/seed_owner.py` — creates first owner row from Neon Auth user ID
+- [x] `scripts/auth_tool.py` — CLI sign-in/sign-up contra Neon Auth para obtener token (opaco) + intento de intercambio JWT
+- [x] Auth bypass hardening: `ENABLE_DEV_AUTH=true` requerido explícitamente (no activo por defecto)
+- [x] 6 tests de users en suite (71 total)
 
 #### 2.5 Integrations (`src/integrations/`) ⏳ PENDING
 > **Why before Orders:** Orders depends on Stripe and envia clients.
@@ -484,10 +509,10 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 | 5 | Confirm operating cost in USD (currently ~$580 MXN/order) | Vantier | Needed for margin calc |
 | 6 | Define product color catalog per variant | Vantier | Needed for Phase 2 products |
 | 7 | Verify `vantierluxuryla.com` domain DNS in Resend dashboard | Dev/Client | ⚠️ Pending — email sends will fail until done |
-| 8 | Neon Auth: create first owner user to get real JWT for QA | Dev | Unblocked after 2.8 is built |
+| 8 | Auth QA real desde Swagger | Dev | ⚠️ Validar en Fase 3 desde Vue SDK — CLI no puede obtener JWT por diseño de seguridad de Better Auth |
 
 ---
 
-*PRD Version: 2.1 — April 2026*
+*PRD Version: 2.2 — April 2026*
 *Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS*
-*Phase 1 complete. Phase 2 in progress: 2.1–2.3 done (65 tests). Next: 2.8 Users → 2.5 Integrations → 2.4 Orders → 2.6 POs → 2.7 Exchanges.*
+*Phase 1 complete. Phase 2 in progress: 2.1, 2.2, 2.3, 2.8 done (71 tests). Next: 2.5 Integrations → 2.4 Orders → 2.6 POs → 2.7 Exchanges.*

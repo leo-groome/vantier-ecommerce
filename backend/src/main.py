@@ -51,8 +51,8 @@ def create_app() -> FastAPI:
     from src.features.inventory.router import router as inventory_router
     app.include_router(inventory_router, prefix="/api/v1/inventory", tags=["Inventory"])
 
-    # from src.features.orders.router import router as orders_router
-    # app.include_router(orders_router, prefix="/api/v1/orders", tags=["Orders"])
+    from src.features.orders.router import router as orders_router
+    app.include_router(orders_router, prefix="/api/v1/orders", tags=["Orders"])
 
     from src.features.discounts.router import router as discounts_router
     app.include_router(discounts_router, prefix="/api/v1/discounts", tags=["Discounts"])
@@ -66,8 +66,8 @@ def create_app() -> FastAPI:
     # from src.features.financials.router import router as financials_router
     # app.include_router(financials_router, prefix="/api/v1/financials", tags=["Financials"])
 
-    # from src.features.users.router import router as users_router
-    # app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
+    from src.features.users.router import router as users_router
+    app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
 
     @app.get("/health", tags=["Health"])
     async def health_check() -> dict:

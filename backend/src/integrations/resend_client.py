@@ -63,3 +63,63 @@ async def send_low_stock_alert(variants: list[dict]) -> None:
             "text": body,
         }
     )
+
+
+async def send_order_confirmed(
+    order_id: str, customer_email: str, items: list[dict], total_usd: str, estimated_shipping: str
+) -> None:
+    settings = get_settings()
+    item_rows = "\n".join(f" - {i['qty']}x {i['name']} (${i['price']})" for i in items)
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "subject": f"Order Confirmed - #{order_id}",
+        "text": f"Thank you for your order!\n\nOrder #{order_id}\nTotal: ${total_usd}\nEst. Shipping: {estimated_shipping}\n\nItems:\n{item_rows}"
+    })
+
+
+async def send_order_shipped(
+    customer_email: str, tracking_number: str, carrier: str
+) -> None:
+    settings = get_settings()
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "subject": "Your Vantier Order Has Shipped",
+        "text": f"Your order is on the way!\n\nCarrier: {carrier}\nTracking Number: {tracking_number}"
+    })
+
+
+async def send_exchange_notification(
+    order_id: str, customer_email: str, admin_email: str, exchange_details: str
+) -> None:
+    settings = get_settings()
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email, admin_email],
+        "subject": f"Exchange Requested - Order #{order_id}",
+        "text": f"An exchange has been requested for Order #{order_id}.\n\nDetails:\n{exchange_details}"
+    })
+
+
+async def send_new_order_alert(order_id: str, summary: str) -> None:
+    settings = get_settings()
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [settings.resend_support_email],
+        "subject": f"New Order Received - #{order_id}",
+        "text": f"A new order has been placed.\n\n{summary}"
+    })
+
+
+async def send_contact_form(
+    sender_name: str, sender_email: str, message: str
+) -> None:
+    settings = get_settings()
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [settings.resend_support_email],
+        "reply_to": sender_email,
+        "subject": f"New Contact Request from {sender_name}",
+        "text": f"You have received a new contact form submission.\n\nName: {sender_name}\nEmail: {sender_email}\nMessage:\n{message}"
+    })
