@@ -60,8 +60,8 @@ def create_app() -> FastAPI:
     # from src.features.exchanges.router import router as exchanges_router
     # app.include_router(exchanges_router, prefix="/api/v1/exchanges", tags=["Exchanges"])
 
-    # from src.features.purchase_orders.router import router as po_router
-    # app.include_router(po_router, prefix="/api/v1/purchase-orders", tags=["Purchase Orders"])
+    from src.features.purchase_orders.router import router as po_router
+    app.include_router(po_router, prefix="/api/v1/purchase-orders", tags=["Purchase Orders"])
 
     # from src.features.financials.router import router as financials_router
     # app.include_router(financials_router, prefix="/api/v1/financials", tags=["Financials"])
