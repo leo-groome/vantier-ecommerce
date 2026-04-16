@@ -376,11 +376,11 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 
 ---
 
-### Phase 2 — Commerce Core (Backend API) 🔄 IN PROGRESS
+### Phase 2 — Commerce Core (Backend API) ✅ COMPLETE
 
 All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2.7**
 
-> **Test suite:** 85 tests passing as of 2026-04-16. Run with:
+> **Test suite:** 99 tests passing as of 2026-04-16. Run with:
 > `pyenv exec python -m pytest -q`
 
 #### 2.1 Products slice (`src/features/products/`) ✅ COMPLETE
@@ -413,43 +413,27 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 - [x] Auth bypass hardening: `ENABLE_DEV_AUTH=true` requerido explícitamente (no activo por defecto)
 - [x] 6 tests de users en suite (71 total)
 
-#### 2.5 Integrations (`src/integrations/`) ⏳ PENDING
-> **Why before Orders:** Orders depends on Stripe and envia clients.
-- [x] `resend_client.py`: `send_low_stock_alert()` ← already done in 2.2
-- [ ] `resend_client.py`: remaining triggers — `send_order_confirmed()`, `send_order_shipped()`, `send_exchange_notification()`, `send_new_order_alert()`, `send_contact_form()`
-- [ ] `stripe_client.py`: `create_checkout_session()`, `verify_webhook_signature()`
-  > ⚠️ Requires Stripe secret key + webhook secret in `.env`. Credentials pending from client.
-- [ ] `envia_client.py`: `get_shipping_rates()`, `create_shipment()`, `get_label_url()`
-  > ⚠️ Requires envia.com API key. Credentials pending from client.
-  > 💡 Orders can be built with placeholder/mock clients first, connect real keys later.
+#### 2.5 Integrations (`src/integrations/`) ✅ COMPLETE
+- [x] `resend_client.py`: all 6 triggers implemented (low_stock, order_confirmed, order_shipped, exchange_notification, new_order_alert, contact_form)
+- [x] `stripe_client.py`: mock stub — real integration pending Stripe credentials from client
+- [x] `envia_client.py`: mock stub — real integration pending envia.com credentials from client
 
-#### 2.4 Orders slice (`src/features/orders/`) ⏳ PENDING
-> **Depends on:** 2.5 integrations (Stripe + envia stubs at minimum)
-- [ ] Schemas: `OrderCreate`, `OrderItemCreate`, `OrderResponse`, `OrderStatusUpdate`
-- [ ] Service:
-  - Order creation: validate variants in stock, decrement `stock_qty`, apply discount (`increment_usage_count`), compute free shipping (qty ≥ 5), create Stripe Checkout Session
-  - Status transitions: `Pending → Processing → Shipped → Delivered`
-  - Guest checkout support (`neon_auth_user_id` nullable)
-- [ ] Router:
-  - `POST /orders/checkout` → Stripe Checkout Session
-  - `POST /webhooks/stripe` → payment confirmed, `payment_status = paid` (PUBLIC, sig-verified)
-  - `GET /orders` → admin list with filters
-  - `GET /orders/{id}` → detail
-  - `PATCH /orders/{id}/status` → admin status update
-  - `POST /orders/{id}/shipping-label` → envia.com label generation
-- [ ] Resend triggers: `send_order_confirmed()` on checkout, `send_new_order_alert()` to admin, `send_order_shipped()` on status → Shipped
+#### 2.4 Orders slice (`src/features/orders/`) ✅ COMPLETE
+- [x] Schemas: `OrderCreate`, `OrderItemCreate`, `OrderResponse`, `OrderStatusUpdate`, `CheckoutResponse`
+- [x] Service: create_order, confirm_payment (webhook), get_order, get_order_for_user, list_orders, list_user_orders, update_order_status, generate_shipping_label
+- [x] Router: `POST /checkout`, `POST /webhook/stripe`, `GET /my`, `GET /my/{id}`, `GET /` (admin), `GET /{id}` (admin), `PATCH /{id}/status`, `POST /{id}/shipping-label`
 
-#### 2.6 Purchase Orders slice (`src/features/purchase_orders/`) ⏳ PENDING
-> **Independent — can be built any time after 2.8**
-- [ ] Schemas: `PurchaseOrderCreate`, `PurchaseOrderResponse`, `POStatusUpdate`, `POItemCreate`
-- [ ] Service: PO CRUD, status transition to `received` → auto-increments `stock_qty` per item
-- [ ] Router: `POST /purchase-orders`, `GET /purchase-orders`, `GET /purchase-orders/{id}`, `PATCH /purchase-orders/{id}/status`
+#### 2.6 Purchase Orders slice (`src/features/purchase_orders/`) ✅ COMPLETE
+- [x] Schemas: `PurchaseOrderCreate`, `PurchaseOrderResponse`, `POStatusUpdate`, `POItemCreate`, `POItemResponse`
+- [x] Service: list, get, create (variant validation + unique reference_number), update_po_status (ordered→in_transit|received, SELECT FOR UPDATE stock increment on received)
+- [x] Router: `POST /purchase-orders`, `GET /purchase-orders`, `GET /purchase-orders/{id}`, `PATCH /purchase-orders/{id}/status` (all admin)
+- [x] 7 tests passing
 
-#### 2.7 Exchanges slice (`src/features/exchanges/`) ⏳ PENDING
-> **Depends on:** Orders (2.4) to have `order_id` to reference
-- [ ] Schemas: `ExchangeCreate`, `ExchangeResponse`, `ExchangeAdminUpdate`
-- [ ] Service: create exchange request (validates same product line), admin status update, Resend notification to both parties
-- [ ] Router: `POST /exchanges`, `GET /exchanges`, `GET /exchanges/{id}`, `PATCH /exchanges/{id}`
+#### 2.7 Exchanges slice (`src/features/exchanges/`) ✅ COMPLETE
+- [x] Schemas: `ExchangeCreate`, `ExchangeResponse`, `ExchangeAdminUpdate`
+- [x] Service: create_exchange (order validation, variant-in-order check, duplicate guard, Resend fire-and-forget), update_exchange (same-line product validation), list, get
+- [x] Router: `POST /exchanges` (authenticated), `GET /exchanges`, `GET /exchanges/{id}`, `PATCH /exchanges/{id}` (admin)
+- [x] 7 tests passing
 
 ---
 
@@ -513,6 +497,6 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 
 ---
 
-*PRD Version: 2.3 — April 2026*
+*PRD Version: 2.4 — April 2026*
 *Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS*
-*Phase 1 complete. Phase 2 in progress: 2.1, 2.2, 2.3, 2.4, 2.5, 2.8 done (85 tests). Next: 2.6 Purchase Orders → 2.7 Exchanges → Phase 3 Frontend.*
+*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Next: Phase 3 Frontend. Blocked by: Stripe credentials, envia.com credentials (client).*
