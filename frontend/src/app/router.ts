@@ -33,6 +33,7 @@ const router = createRouter({
     {
       path: '/auth',
       component: AuthLayout,
+      meta: { guestOnly: true },
       children: [
         { path: 'login', component: () => import('@features/auth/components/LoginPage.vue') },
       ],

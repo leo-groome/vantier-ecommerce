@@ -68,6 +68,23 @@ async def get_admin_user(
     )
     admin = result.scalar_one_or_none()
 
+    # First-login linkage: invited users get a pending_* placeholder ID.
+    # When they log in for the first time, update their record to the real Neon Auth user ID.
+    if admin is None:
+        email = claims.get("email") or claims.get("primary_email")
+        if email:
+            from sqlalchemy import func as sa_func
+            email_result = await db.execute(
+                select(AdminUser).where(
+                    sa_func.lower(AdminUser.email) == email.lower(),
+                    AdminUser.neon_auth_user_id.like("pending_%"),
+                )
+            )
+            admin = email_result.scalar_one_or_none()
+            if admin is not None:
+                admin.neon_auth_user_id = neon_id
+                await db.flush()
+
     if admin is None or not admin.is_active:
         raise ForbiddenException("User is not an authorized admin")
 

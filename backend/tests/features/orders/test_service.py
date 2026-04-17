@@ -91,7 +91,7 @@ async def test_create_order_success(db_session: AsyncSession):
     data = _make_order_data(variant.id, qty=2)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as mock_stripe:
-        mock_stripe.return_value = f"https://checkout.stripe.mock/{uuid.uuid4()}"
+        mock_stripe.return_value = (f"https://checkout.stripe.mock/{uuid.uuid4()}", "cs_test_mock")
         order, checkout_url = await service.create_order(db_session, user_id=None, data=data)
 
     assert order.id is not None
@@ -114,7 +114,7 @@ async def test_create_order_guest_checkout(db_session: AsyncSession):
     data = _make_order_data(variant.id)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/guest"
+        m.return_value = ("https://checkout.stripe.mock/guest", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     assert order.neon_auth_user_id is None
@@ -144,7 +144,7 @@ async def test_create_order_free_shipping(db_session: AsyncSession):
     )
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/free"
+        m.return_value = ("https://checkout.stripe.mock/free", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     assert order.is_free_shipping is True
@@ -161,7 +161,7 @@ async def test_create_order_with_discount(db_session: AsyncSession):
     data = _make_order_data(variant.id, qty=1, discount_code="PCT10")
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/discount"
+        m.return_value = ("https://checkout.stripe.mock/discount", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     assert order.discount_usd == Decimal("10.00")   # 10% of 100
@@ -189,7 +189,7 @@ async def test_confirm_payment_decrements_stock(db_session: AsyncSession):
     data = _make_order_data(variant.id, qty=3)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = f"https://checkout.stripe.mock/order123"
+        m.return_value = ("https://checkout.stripe.mock/order123", "cs_test_order123")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     session_id = order.stripe_checkout_session_id
@@ -218,7 +218,7 @@ async def test_confirm_payment_idempotent(db_session: AsyncSession):
     data = _make_order_data(variant.id, qty=2)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/idempotent"
+        m.return_value = ("https://checkout.stripe.mock/idempotent", "cs_test_idempotent")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     session_id = order.stripe_checkout_session_id
@@ -243,7 +243,7 @@ async def test_confirm_payment_fires_emails(db_session: AsyncSession):
     data = _make_order_data(variant.id, qty=1)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/emails"
+        m.return_value = ("https://checkout.stripe.mock/emails", "cs_test_emails")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     with patch("src.integrations.resend_client.send_order_confirmed", new_callable=AsyncMock) as mock_confirmed:
@@ -270,7 +270,7 @@ async def test_update_status_valid_transition(db_session: AsyncSession):
     data = _make_order_data(variant.id)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/status"
+        m.return_value = ("https://checkout.stripe.mock/status", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     # Manually move to processing (bypasses state machine for setup)
@@ -290,7 +290,7 @@ async def test_update_status_invalid_transition(db_session: AsyncSession):
     data = _make_order_data(variant.id)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/invalid"
+        m.return_value = ("https://checkout.stripe.mock/invalid", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     with pytest.raises(ConflictException):
@@ -304,7 +304,7 @@ async def test_update_status_shipped_fires_email(db_session: AsyncSession):
     data = _make_order_data(variant.id)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/shipped"
+        m.return_value = ("https://checkout.stripe.mock/shipped", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     order.status = "processing"
@@ -328,7 +328,7 @@ async def test_generate_shipping_label(db_session: AsyncSession):
     data = _make_order_data(variant.id)
 
     with patch("src.integrations.stripe_client.create_checkout_session", new_callable=AsyncMock) as m:
-        m.return_value = "https://checkout.stripe.mock/label"
+        m.return_value = ("https://checkout.stripe.mock/label", "cs_test_mock")
         order, _ = await service.create_order(db_session, user_id=None, data=data)
 
     updated = await service.generate_shipping_label(db_session, order.id)

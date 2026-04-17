@@ -25,6 +25,12 @@ export function applyRouteGuards(
 ): void {
   const meta = to.meta
 
+  // Already authenticated admin visiting the login page → go to dashboard
+  if (meta.guestOnly && getToken() && getUserRole()) {
+    next({ path: '/admin/dashboard' })
+    return
+  }
+
   if (meta.requireAuth && !getToken()) {
     next({ path: '/auth/login', query: { redirect: to.fullPath } })
     return

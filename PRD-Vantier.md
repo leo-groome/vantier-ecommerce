@@ -344,7 +344,13 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 - Para Swagger local: `dev_token_e552ac1b-527c-4237-a6b0-08821d854a59` (owner seeded).
 - ⚠️ El dev bypass requiere que el proceso haya arrancado con `ENABLE_DEV_AUTH=true` — si Uvicorn arrancó antes de agregarlo al `.env`, reiniciar el servidor.
 
-**Validación de auth real:** Se realizará en Fase 3 (Vue.js) con el SDK de Neon Auth.
+**Validación de auth real:** ✅ Completado en Fase 3 — SDK integrado, login funcional, redirect a `/admin/dashboard` tras autenticación.
+
+**Auth policy (2026-04-17):**
+- Auth es **exclusivo para admins** (`owner`, `operative`). Los clientes compran sin registrarse (guest checkout).
+- Las rutas de storefront (`/account`, `/orders`, `/exchanges`) son públicas — sin `requireAuth`.
+- La ruta `/auth/login` tiene `guestOnly: true` — si el admin ya está autenticado, redirige automáticamente a `/admin/dashboard`.
+- El guard `requireAdmin` en `/admin/*` verifica el role desde localStorage (`Owner` | `Operative`).
 
 ---
 
@@ -437,15 +443,65 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 
 ---
 
-### Phase 3 — Storefront & Admin UI (Frontend)
+### Phase 3 — Storefront & Admin UI (Frontend) 🔄 IN PROGRESS
 
-- [ ] Vue 3 project scaffold: Tailwind CSS, Pinia, Vue Router, Neon Auth SDK
-- [ ] Storefront: homepage, catalog page, product detail page (PDP)
-- [ ] Cart: Pinia store, free shipping banner, discount code field
-- [ ] Checkout: Stripe.js integration, address form, order confirmation
-- [ ] User account: order history, exchange request form, saved addresses
-- [ ] Admin panel: inventory CRUD, order management, PO module
-- [ ] Admin panel: discount codes, user management (Owner only)
+> **Session started 2026-04-17.** Auth wired, admin login functional, Cloudflare R2 connected, Inventory module live.
+
+#### 3.0 Foundation ✅ COMPLETE
+- [x] Vue 3 scaffold: Tailwind CSS v3, Pinia, Vue Router 4, Neon Auth SDK (`@neondatabase/auth`)
+- [x] Vertical Slice Architecture in `frontend/src/features/`
+- [x] Axios client with JWT interceptor (`shared/api/client.ts`) — baseURL `/api/v1`, auth header auto-injected
+- [x] Route guard system (`shared/auth/guards.ts`) — `requireAdmin`, `requireOwner`, `requireAuth`, `guestOnly`
+- [x] Auth store (`features/auth/store.ts`) — `login()`, `logout()`, `syncFromNeonAuth()`, `fetchRole()`
+- [x] Neon Auth SDK client (`features/auth/auth-client.ts`)
+- [x] LoginPage with redirect-to-dashboard after successful admin login
+- [x] AdminLayout: collapsible sidebar, nav items, logout, real role badge
+- [x] Infinite redirect loop bug fixed — 401 interceptor skips redirect when already on `/auth/*`
+- [x] Auth is guest-only for customers — `/account`, `/orders`, `/exchanges` have no `requireAuth`
+- [x] Cloudflare R2 integration — `cloudflare_client.py` + image upload endpoint on products router
+
+#### 3.1 Admin — Inventory Module ✅ COMPLETE
+- [x] `admin/inventory/types.ts` — `AdminProduct`, `AdminVariant`, payloads matching backend snake_case schema
+- [x] `admin/inventory/api.ts` — full API layer: products CRUD, variants CRUD, stock adjust, low-stock, barcode URL, image upload
+- [x] `admin/inventory/store.ts` — Pinia store with error handling and optimistic stock updates
+- [x] `InventoryPage.vue` — real backend data, expandable variant rows, stock delta editing
+- [x] Add Product modal (line, name, description) → `POST /api/v1/products`
+- [x] Add Variant modal (style, size, color, price, cost, initial stock) → `POST /api/v1/products/:id/variants`
+- [x] Image manager per variant → upload to Cloudflare R2 via `POST /api/v1/products/:id/variants/:id/images/upload`
+
+#### 3.2 Admin — Dashboard
+- [ ] Wire KPI cards to real backend data (revenue, orders, low stock, exchanges)
+- [ ] Recent orders table from real `GET /api/v1/orders`
+
+#### 3.3 Admin — Orders Module
+- [ ] List orders with status filter → `GET /api/v1/orders`
+- [ ] Order detail modal → status update `PATCH /api/v1/orders/:id/status`
+- [ ] Generate shipping label → `POST /api/v1/orders/:id/shipping-label`
+
+#### 3.4 Admin — Discounts Module
+- [ ] List, create, edit, disable discount codes → `/api/v1/discounts`
+- [ ] Margin warning UI when discount breaks 50% floor
+
+#### 3.5 Admin — Purchase Orders Module
+- [ ] Create PO → `POST /api/v1/purchase-orders`
+- [ ] Update status (ordered → in_transit → received) → stock auto-increments on receive
+
+#### 3.6 Admin — Users Module
+- [ ] List admins, invite by email, change role, deactivate → `/api/v1/users`
+
+#### 3.7 Storefront — Homepage & Catalog
+- [ ] Homepage components wired to real products (`FeaturedProducts`, `ProductLineGrid`)
+- [ ] CatalogPage filters → `GET /api/v1/products?line=&size=&style=`
+- [ ] ProductDetailPage images from Cloudflare R2 URLs
+
+#### 3.8 Storefront — Cart & Checkout
+- [ ] Cart Pinia store, free shipping banner (5+ items), discount code validation
+- [ ] Checkout: address form, shipping rate via envia.com, Stripe payment form
+- [ ] Order confirmation screen + email trigger via Resend
+
+#### 3.9 Storefront — Customer Account (optional, no registration required)
+- [ ] Order lookup by email (guest-friendly)
+- [ ] Exchange request form → `POST /api/v1/exchanges`
 
 ---
 
@@ -493,10 +549,11 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 | 5 | Confirm operating cost in USD (currently ~$580 MXN/order) | Vantier | Needed for margin calc |
 | 6 | Define product color catalog per variant | Vantier | Needed for Phase 2 products |
 | 7 | Verify `vantierluxuryla.com` domain DNS in Resend dashboard | Dev/Client | ⚠️ Pending — email sends will fail until done |
-| 8 | Auth QA real desde Swagger | Dev | ⚠️ Validar en Fase 3 desde Vue SDK — CLI no puede obtener JWT por diseño de seguridad de Better Auth |
+| 8 | Auth QA real desde Swagger | Dev | ✅ Resuelto — auth funcional via SDK de Vue. Login → JWT → `/users/me` → role → dashboard |
+| 9 | Cloudflare R2 bucket conectado | Dev | ✅ Completo — `cloudflare_client.py`, upload de imágenes de producto en producción |
 
 ---
 
-*PRD Version: 2.4 — April 2026*
-*Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS*
-*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Next: Phase 3 Frontend. Blocked by: Stripe credentials, envia.com credentials (client).*
+*PRD Version: 2.5 — April 2026*
+*Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS · Cloudflare R2*
+*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Phase 3 in progress — auth wired, admin login functional, Inventory module live. Next: Admin Dashboard → Orders → Discounts → Storefront.*

@@ -1,24 +1,36 @@
 import axios, { type AxiosInstance } from 'axios'
+import { authClient } from '@features/auth/auth-client'
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
+  baseURL: (import.meta.env.VITE_API_URL ?? 'http://localhost:8000') + '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Inject Neon Auth JWT before every request
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('neon_auth_token')
+// Inject a fresh Neon Auth JWT before every request.
+// authClient.getSession() auto-refreshes if the stored token is expired.
+apiClient.interceptors.request.use(async (config) => {
+  let token: string | null = null
+  try {
+    const { data } = await authClient.getSession()
+    if (data) {
+      token = data.session.token
+      localStorage.setItem('neon_auth_token', token)
+    }
+  } catch {
+    token = localStorage.getItem('neon_auth_token')
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handle auth errors globally
+// Handle auth errors globally.
+// Only redirect on 401 if NOT already on an auth page (prevents infinite reload loop).
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !window.location.pathname.startsWith('/auth')) {
       window.location.href = '/auth/login'
     }
     return Promise.reject(error)

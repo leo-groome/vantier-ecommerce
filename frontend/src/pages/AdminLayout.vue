@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute, RouterLink, useRouter } from 'vue-router'
+import { useAuthStore } from '@features/auth/store'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 const sidebarCollapsed = ref(false)
 
 const navItems = [
@@ -19,10 +22,9 @@ function isActive(to: string) {
   return route.path.startsWith(to)
 }
 
-function clearAuth() {
-  localStorage.removeItem('neon_auth_token')
-  localStorage.removeItem('neon_auth_role')
-  window.location.href = '/auth/login'
+async function clearAuth() {
+  await auth.logout()
+  await router.push('/auth/login')
 }
 </script>
 
@@ -116,9 +118,9 @@ function clearAuth() {
         </div>
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-full bg-[color:var(--color-obsidian)] flex items-center justify-center text-[color:var(--color-ivory)] text-[10px] font-bold">
-            O
+            {{ auth.role?.charAt(0) ?? '?' }}
           </div>
-          <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">Owner</span>
+          <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">{{ auth.role ?? '—' }}</span>
         </div>
       </header>
 

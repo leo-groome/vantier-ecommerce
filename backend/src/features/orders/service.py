@@ -167,12 +167,10 @@ async def create_order(
         }
         for item in data.items
     ]
-    checkout_url = await stripe_client.create_checkout_session(
+    checkout_url, session_id = await stripe_client.create_checkout_session(
         str(order.id), stripe_items, str(data.customer_email)
     )
-    # Store session ID extracted from the URL (stub: last path segment = order UUID).
-    # Production: Stripe SDK returns Session.id directly (cs_xxx).
-    order.stripe_checkout_session_id = checkout_url.rstrip("/").split("/")[-1]
+    order.stripe_checkout_session_id = session_id
 
     await db.flush()
     return order, checkout_url

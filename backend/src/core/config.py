@@ -33,11 +33,17 @@ class Settings(BaseSettings):
     resend_from_email: str = "support@vantierluxuryla.com"
     resend_support_email: str = "support@vantierluxuryla.com"
 
-    # Storage
+    # Storage / Cloudflare R2
     storage_url: str
+    cloudflare_account_id: str = ""
+    r2_bucket: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_public_url: str = ""
 
     # App
     environment: str = "development"
+    frontend_url: str = "http://localhost:5173"
     cors_origins: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

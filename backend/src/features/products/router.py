@@ -5,9 +5,11 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from src.core.dependencies import AdminUserDep, DBSession, OwnerDep
+from src.core.exceptions import AppException
+from src.integrations import cloudflare_client
 from src.core.utils import PaginationParams, paginate
 from src.features.products import service
 from src.features.products.schemas import (
@@ -130,6 +132,41 @@ async def deactivate_variant(
 
 
 # ── Admin endpoints — images ───────────────────────────────────────────────────
+
+@router.post(
+    "/{product_id}/variants/{variant_id}/images/upload",
+    response_model=ImageResponse,
+    status_code=201,
+)
+async def upload_image(
+    product_id: uuid.UUID,
+    variant_id: uuid.UUID,
+    file: Annotated[UploadFile, File(description="Image file (JPEG, PNG, WebP)")],
+    db: DBSession,
+    _admin: AdminUserDep,
+    alt_text: str | None = None,
+) -> ImageResponse:
+    """Upload an image to Cloudflare R2 and attach it to a variant. Requires admin role.
+
+    Accepts multipart/form-data with a `file` field. The image is stored in R2
+    under the `products/` folder and the resulting public URL is saved to the DB.
+    """
+    _ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    content_type = file.content_type or "application/octet-stream"
+    if content_type not in _ALLOWED_TYPES:
+        raise AppException(f"Unsupported file type: {content_type}. Allowed: JPEG, PNG, WebP", status_code=422)
+
+    raw = await file.read()
+    if len(raw) > 10 * 1024 * 1024:  # 10 MB limit
+        raise AppException("Image exceeds 10 MB size limit", status_code=413)
+
+    url = await cloudflare_client.upload_image(
+        raw, file.filename or "image.jpg", folder=f"products/{variant_id}"
+    )
+    image_data = ImageCreate(url=url, alt_text=alt_text)
+    image = await service.add_image(db, variant_id, image_data)
+    return ImageResponse.model_validate(image)
+
 
 @router.post(
     "/{product_id}/variants/{variant_id}/images",

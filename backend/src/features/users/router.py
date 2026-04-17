@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from src.core.dependencies import DBSession, OwnerDep
+from src.core.dependencies import AdminUserDep, DBSession, OwnerDep
 from src.features.users import service
 from src.features.users.schemas import (
     AdminRoleUpdate,
@@ -13,6 +13,14 @@ from src.features.users.schemas import (
 )
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=AdminUserResponse)
+async def get_my_profile(
+    admin: AdminUserDep,
+) -> AdminUserResponse:
+    """Return the current admin user's profile and role."""
+    return admin
 
 
 @router.get("", response_model=list[AdminUserResponse])
