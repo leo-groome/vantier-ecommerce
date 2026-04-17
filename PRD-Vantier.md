@@ -323,18 +323,25 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 - Storefront customers authenticated via Neon Auth; their user IDs stored as strings on orders/addresses (no FK)
 - Guest checkout supported (`neon_auth_user_id` nullable on orders)
 
-#### Auth Architecture Notes (Recorded 2026-04-14)
+#### Auth Architecture Notes (Recorded 2026-04-14, updated 2026-04-17)
 
 **Flow de producción correcto:**
-1. Frontend Vue usa `@neondatabase/neon-auth` SDK para sign-in/sign-up.
+1. Frontend Vue usa `@neondatabase/auth` SDK (wraps Better Auth) para sign-in/sign-up.
 2. SDK emite una *cookie de sesión opaca* internamente (Better Auth).
-3. Frontend llama `authClient.getToken()` que intercambia la sesión por un **JWT real (`eyJ...`)**.
-4. Vue envía ese JWT como `Authorization: Bearer <token>` en cada request a FastAPI.
-5. FastAPI valida contra JWKS. Cero contraseñas en el backend.
+3. El servidor Neon Auth inyecta el JWT real en el header `set-auth-jwt` de cada response exitoso.
+4. El SDK intercepta este header y reemplaza `session.token` con el JWT (`eyJ...`, EdDSA/Ed25519).
+5. El interceptor Axios llama `authClient.getSession()` → extrae `data.session.token` → envía como `Authorization: Bearer <jwt>`.
+6. FastAPI valida el JWT contra JWKS. Cero contraseñas en el backend.
+
+**Configuración crítica de NEON_AUTH_AUDIENCE:**
+- El JWT emitido por Neon Auth tiene `aud = <Neon Auth URL>` (e.g. `https://ep-still-poetry-ak684mdd.neonauth.c-3.us-west-2.aws.neon.tech`).
+- **No** es `"authenticated"` — ese valor es de Supabase. Configuring `NEON_AUTH_AUDIENCE=authenticated` causa 401 en todos los endpoints.
+- El valor correcto en `backend/.env`: `NEON_AUTH_AUDIENCE=<URL base de NEON_AUTH_JWKS_URL sin el path>`.
+- Bug corregido 2026-04-17: actualizado en `backend/.env`.
 
 **Por qué el script CLI no emite JWT directamente:**
 - Neon Auth usa Better Auth internamente. El endpoint `/sign-in/email` retorna un *token de sesión opaco* (no un JWT).
-- El intercambio sesión → JWT (`GET /token`) requiere una cookie de browser activa con binding de sesión completo. No funciona desde CLI/Postman por diseño de seguridad de Better Auth.
+- El intercambio sesión → JWT requiere una cookie de browser activa con binding de sesión completo. No funciona desde CLI/Postman por diseño de seguridad de Better Auth.
 - Esto es correcto y esperado. El JWT se obtiene solo a través del SDK del browser.
 
 **Dev bypass (local únicamente):**
@@ -344,13 +351,12 @@ operating_costs   (id, label, amount_usd, is_recurring, notes)
 - Para Swagger local: `dev_token_e552ac1b-527c-4237-a6b0-08821d854a59` (owner seeded).
 - ⚠️ El dev bypass requiere que el proceso haya arrancado con `ENABLE_DEV_AUTH=true` — si Uvicorn arrancó antes de agregarlo al `.env`, reiniciar el servidor.
 
-**Validación de auth real:** ✅ Completado en Fase 3 — SDK integrado, login funcional, redirect a `/admin/dashboard` tras autenticación.
-
 **Auth policy (2026-04-17):**
 - Auth es **exclusivo para admins** (`owner`, `operative`). Los clientes compran sin registrarse (guest checkout).
 - Las rutas de storefront (`/account`, `/orders`, `/exchanges`) son públicas — sin `requireAuth`.
 - La ruta `/auth/login` tiene `guestOnly: true` — si el admin ya está autenticado, redirige automáticamente a `/admin/dashboard`.
 - El guard `requireAdmin` en `/admin/*` verifica el role desde localStorage (`Owner` | `Operative`).
+- Login → JWT verificado → `/users/me` retorna role → `fetchRole()` guarda en localStorage → redirect a `/admin/dashboard`. ✅ Flujo completo verificado 2026-04-17.
 
 ---
 
@@ -549,11 +555,11 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 | 5 | Confirm operating cost in USD (currently ~$580 MXN/order) | Vantier | Needed for margin calc |
 | 6 | Define product color catalog per variant | Vantier | Needed for Phase 2 products |
 | 7 | Verify `vantierluxuryla.com` domain DNS in Resend dashboard | Dev/Client | ⚠️ Pending — email sends will fail until done |
-| 8 | Auth QA real desde Swagger | Dev | ✅ Resuelto — auth funcional via SDK de Vue. Login → JWT → `/users/me` → role → dashboard |
+| 8 | Auth QA real — flujo completo end-to-end | Dev | ✅ Resuelto 2026-04-17 — bug `NEON_AUTH_AUDIENCE` corregido. Login → JWT (EdDSA) → `/users/me` → role `owner` → redirect `/admin/dashboard` funcional |
 | 9 | Cloudflare R2 bucket conectado | Dev | ✅ Completo — `cloudflare_client.py`, upload de imágenes de producto en producción |
 
 ---
 
-*PRD Version: 2.5 — April 2026*
+*PRD Version: 2.6 — April 2026*
 *Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS · Cloudflare R2*
-*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Phase 3 in progress — auth wired, admin login functional, Inventory module live. Next: Admin Dashboard → Orders → Discounts → Storefront.*
+*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Phase 3 in progress — auth E2E verified, admin login → dashboard funcional, Inventory module live. Next: Admin Dashboard → Orders → Discounts → Storefront.*
