@@ -1,70 +1,43 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdminStatCard from '@features/admin/components/shared/AdminStatCard.vue'
 import StatusBadge from '@features/admin/components/shared/StatusBadge.vue'
 import AdminButton from '@features/admin/components/shared/AdminButton.vue'
 import type { AdminStatus } from '@features/admin/components/shared/StatusBadge.vue'
+import { useAdminDashboardStore } from '../store'
 
-interface KPI {
-  label: string; value: string; sub: string
-  delta?: string; deltaUp?: boolean; icon: string
-  valueColor?: string
+const store = useAdminDashboardStore()
+
+const STATUS_MAP: Record<string, AdminStatus> = {
+  pending:    'pendiente',
+  processing: 'procesando',
+  shipped:    'enviado',
+  delivered:  'entregado',
+  cancelled:  'inactivo',
 }
 
-interface RecentOrder {
-  id: string; customer: string; items: number
-  total: number; status: AdminStatus; date: string
+const pendingCount = computed(() =>
+  store.recentOrders.filter(o => o.status === 'pending').length
+)
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 }
 
-const kpis = ref<KPI[]>([])
-const recentOrders = ref<RecentOrder[]>([])
-const loading = ref(true)
+function orderTotal(o: { total_usd: string }): string {
+  return `$${Number(o.total_usd).toFixed(2)}`
+}
 
-onMounted(() => {
-  setTimeout(() => {
-    kpis.value = [
-      {
-        label: 'Revenue Hoy',
-        value: '$3,240', sub: '18 órdenes', delta: '+12%', deltaUp: true,
-        icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-      },
-      {
-        label: 'Órdenes este mes',
-        value: '342', sub: '$58,400 total', delta: '+8%', deltaUp: true,
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-      },
-      {
-        label: 'Stock Bajo',
-        value: '7', sub: 'variantes ≤ 5 uds', delta: '+3', deltaUp: false,
-        valueColor: 'var(--status-warn-text)',
-        icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
-      },
-      {
-        label: 'Exchanges Pendientes',
-        value: '4', sub: 'pendientes aprobación', delta: '-2', deltaUp: true,
-        icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-      },
-    ]
+function totalItems(o: { items: { qty: number }[] }): number {
+  return o.items.reduce((s, i) => s + i.qty, 0)
+}
 
-    recentOrders.value = [
-      { id: 'V-2024-0318', customer: 'Carlos Mendoza',  items: 3, total: 555,  status: 'entregado',  date: 'Abr 11' },
-      { id: 'V-2024-0317', customer: 'Andrés Fuentes',  items: 1, total: 180,  status: 'enviado',    date: 'Abr 11' },
-      { id: 'V-2024-0316', customer: 'Miguel Torres',   items: 5, total: 875,  status: 'procesando', date: 'Abr 10' },
-      { id: 'V-2024-0315', customer: 'Ricardo Salinas', items: 2, total: 415,  status: 'pendiente',  date: 'Abr 10' },
-      { id: 'V-2024-0314', customer: 'Javier Ríos',     items: 4, total: 760,  status: 'procesando', date: 'Abr 10' },
-      { id: 'V-2024-0313', customer: 'Luis Herrera',    items: 1, total: 220,  status: 'enviado',    date: 'Abr 9'  },
-      { id: 'V-2024-0312', customer: 'Fernando López',  items: 6, total: 1090, status: 'entregado',  date: 'Abr 9'  },
-    ]
-    loading.value = false
-  }, 400)
-})
+onMounted(() => store.loadDashboard())
 </script>
 
 <template>
   <div class="space-y-6">
-
-
 
     <!-- Quick actions -->
     <div class="flex items-center justify-end gap-3 flex-wrap">
@@ -84,23 +57,41 @@ onMounted(() => {
       </RouterLink>
     </div>
 
+    <!-- Error -->
+    <div v-if="store.error" class="text-[0.82rem] text-red-600 px-1">{{ store.error }}</div>
+
     <!-- KPI skeleton -->
-    <div v-if="loading" class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+    <div v-if="store.loading" class="grid grid-cols-2 xl:grid-cols-4 gap-4">
       <div v-for="i in 4" :key="i" class="h-28 rounded-xl animate-pulse" style="background: rgba(0,0,0,0.06);" />
     </div>
 
     <!-- KPI cards -->
     <div v-else class="grid grid-cols-2 xl:grid-cols-4 gap-4">
       <AdminStatCard
-        v-for="kpi in kpis"
-        :key="kpi.label"
-        :label="kpi.label"
-        :value="kpi.value"
-        :sub="kpi.sub"
-        :delta="kpi.delta"
-        :delta-up="kpi.deltaUp"
-        :icon="kpi.icon"
-        :value-color="kpi.valueColor"
+        label="Total Órdenes"
+        :value="String(store.totalOrders)"
+        sub="en el sistema"
+        icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+      />
+      <AdminStatCard
+        label="Pendientes"
+        :value="String(pendingCount)"
+        sub="aguardando proceso"
+        :value-color="pendingCount > 0 ? 'var(--status-warn-text)' : undefined"
+        icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+      <AdminStatCard
+        label="Stock Bajo"
+        :value="String(store.lowStockCount)"
+        sub="variantes ≤ 50 uds"
+        :value-color="store.lowStockCount > 0 ? 'var(--status-warn-text)' : undefined"
+        icon="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+      />
+      <AdminStatCard
+        label="Recientes"
+        :value="String(store.recentOrders.length)"
+        sub="últimas mostradas"
+        icon="M13 10V3L4 14h7v7l9-11h-7z"
       />
     </div>
 
@@ -116,11 +107,16 @@ onMounted(() => {
       </div>
 
       <!-- Skeleton -->
-      <div v-if="loading" class="divide-y" style="border-color: var(--admin-border);">
+      <div v-if="store.loading" class="divide-y" style="border-color: var(--admin-border);">
         <div v-for="i in 5" :key="i" class="px-6 py-4 flex gap-4">
           <div class="h-3 w-28 rounded animate-pulse" style="background: rgba(0,0,0,0.06);" />
           <div class="h-3 w-40 rounded animate-pulse" style="background: rgba(0,0,0,0.06);" />
         </div>
+      </div>
+
+      <!-- Empty -->
+      <div v-else-if="store.recentOrders.length === 0" class="py-10 text-center text-[0.85rem]" style="color: var(--admin-text-secondary);">
+        Sin órdenes aún.
       </div>
 
       <!-- Table -->
@@ -138,21 +134,51 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr
-              v-for="order in recentOrders"
+              v-for="order in store.recentOrders"
               :key="order.id"
               class="transition-colors duration-100"
               style="border-bottom: 1px solid rgba(0,0,0,0.04);"
             >
-              <td class="px-6 py-3.5 font-mono text-[0.72rem] font-medium" style="color: var(--admin-text-primary);">{{ order.id }}</td>
-              <td class="px-6 py-3.5 text-[0.82rem]" style="color: var(--admin-text-primary);">{{ order.customer }}</td>
-              <td class="px-6 py-3.5 text-right text-[0.82rem]" style="color: var(--admin-text-secondary);">{{ order.items }}</td>
-              <td class="px-6 py-3.5 text-right text-[0.82rem] font-medium" style="color: var(--admin-text-primary);">${{ order.total.toLocaleString() }}</td>
+              <td class="px-6 py-3.5 font-mono text-[0.68rem] font-medium" style="color: var(--admin-text-primary);">{{ order.id.slice(0, 8) }}…</td>
+              <td class="px-6 py-3.5 text-[0.82rem]" style="color: var(--admin-text-primary);">{{ order.customer_name ?? order.customer_email }}</td>
+              <td class="px-6 py-3.5 text-right text-[0.82rem]" style="color: var(--admin-text-secondary);">{{ totalItems(order) }}</td>
+              <td class="px-6 py-3.5 text-right text-[0.82rem] font-medium" style="color: var(--admin-text-primary);">{{ orderTotal(order) }}</td>
               <td class="px-6 py-3.5">
                 <div class="flex justify-center">
-                  <StatusBadge :status="order.status" />
+                  <StatusBadge :status="STATUS_MAP[order.status] ?? 'pendiente'" />
                 </div>
               </td>
-              <td class="px-6 py-3.5 text-right text-[0.75rem]" style="color: var(--admin-text-secondary);">{{ order.date }}</td>
+              <td class="px-6 py-3.5 text-right text-[0.75rem]" style="color: var(--admin-text-secondary);">{{ formatDate(order.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Low stock alert -->
+    <div v-if="!store.loading && store.lowStockCount > 0" class="bg-white rounded-xl overflow-hidden" style="box-shadow: var(--admin-card-shadow);">
+      <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--admin-border);">
+        <p class="text-[0.75rem] font-semibold uppercase tracking-wider" style="color: var(--status-warn-text);">
+          ⚠ Stock Bajo ({{ store.lowStockCount }} variantes)
+        </p>
+        <RouterLink to="/admin/inventory" class="text-[0.72rem] font-medium" style="color: var(--admin-amber);">
+          Ver inventario →
+        </RouterLink>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr style="background: var(--admin-bg);">
+              <th class="px-6 py-2.5 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">SKU</th>
+              <th class="px-6 py-2.5 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Talla · Color</th>
+              <th class="px-6 py-2.5 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Stock</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y" style="border-color: var(--admin-border);">
+            <tr v-for="v in store.lowStock" :key="v.id">
+              <td class="px-6 py-3 font-mono text-[0.72rem]" style="color: var(--admin-text-secondary);">{{ v.sku }}</td>
+              <td class="px-6 py-3 text-[0.78rem]" style="color: var(--admin-text-primary);">{{ v.size }} · {{ v.color }}</td>
+              <td class="px-6 py-3 text-right text-[0.82rem] font-bold" style="color: var(--status-warn-text);">{{ v.stock_qty }}</td>
             </tr>
           </tbody>
         </table>
