@@ -56,7 +56,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           v-if="active"
           :key="activeIndex"
           :src="active.url"
-          :alt="active.alt"
+          :alt="active.alt_text ?? ''"
           class="w-full h-full object-cover"
         />
         <div v-else class="w-full h-full flex items-center justify-center">
@@ -105,7 +105,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         :aria-label="`View image ${i + 1}`"
         @click="selectImage(i)"
       >
-        <img :src="img.url" :alt="img.alt" class="w-full h-full object-cover" />
+        <img :src="img.url" :alt="img.alt_text ?? ''" class="w-full h-full object-cover" />
       </button>
     </div>
   </div>
@@ -135,7 +135,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
             v-if="lightboxImage"
             :key="lightboxIndex"
             :src="lightboxImage.url"
-            :alt="lightboxImage.alt"
+            :alt="lightboxImage.alt_text ?? ''"
             class="max-w-[90vw] max-h-[90vh] object-contain select-none"
           />
         </Transition>

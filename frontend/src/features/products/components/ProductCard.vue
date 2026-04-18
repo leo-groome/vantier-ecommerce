@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Product } from '../types'
+import { LINE_LABELS, STYLE_LABELS } from '../types'
 import { COLOR_BG, COLOR_TEXT } from '../mockData'
 import ImageWithReveal from '@shared/components/ImageWithReveal.vue'
 import EditorialQuote from '@shared/components/EditorialQuote.vue'
@@ -22,25 +23,47 @@ const router = useRouter()
 const cart = useCartStore()
 const toast = useToast()
 
-const primaryImage = computed(() =>
-  props.product.images.find(i => i.isPrimary) ?? props.product.images[0]
+const activeVariants = computed(() =>
+  props.product.variants.filter(v => v.is_active)
 )
 
+// First image from any active variant, sorted by position
+const primaryImage = computed(() => {
+  for (const v of activeVariants.value) {
+    const sorted = [...v.images].sort((a, b) => a.position - b.position)
+    if (sorted.length) return sorted[0]
+  }
+  return null
+})
+
+// Minimum price across active variants
+const displayPrice = computed(() => {
+  const prices = activeVariants.value.map(v => Number(v.price_usd)).filter(p => p > 0)
+  return prices.length ? Math.min(...prices) : 0
+})
+
+// Display labels derived from backend enum values
+const lineLabel = computed(() => LINE_LABELS[props.product.line] ?? props.product.line)
+const styleLabel = computed(() => {
+  const s = activeVariants.value[0]?.style
+  return s ? (STYLE_LABELS[s] ?? s) : ''
+})
+
+// Unique colors from active variants (max 5 swatches)
 const uniqueColors = computed(() => {
   const seen = new Set<string>()
-  return props.product.variants
+  return activeVariants.value
     .filter(v => { if (seen.has(v.color)) return false; seen.add(v.color); return true })
     .slice(0, 5)
 })
 
 const selectedColor = ref(uniqueColors.value[0]?.color ?? '')
 
+// Min stock across all active variants for low-stock badge
 const minStock = computed(() =>
-  props.product.variants.reduce((min, v) => Math.min(min, v.stock), Infinity)
+  activeVariants.value.reduce((min, v) => Math.min(min, v.stock_qty), Infinity)
 )
 
-// Quick-add: finds the first in-stock variant for the selected color
-// If multiple sizes → navigate to PDP. If exactly one → add directly.
 const quickState = ref<QuickState>('idle')
 
 async function onQuickAdd(e: Event) {
@@ -48,8 +71,8 @@ async function onQuickAdd(e: Event) {
   e.stopPropagation()
   if (quickState.value !== 'idle') return
 
-  const candidates = props.product.variants.filter(
-    v => v.color === selectedColor.value && v.stock > 0
+  const candidates = activeVariants.value.filter(
+    v => v.color === selectedColor.value && v.stock_qty > 0
   )
 
   if (candidates.length === 0) {
@@ -58,12 +81,10 @@ async function onQuickAdd(e: Event) {
   }
 
   if (candidates.length > 1) {
-    // Multiple sizes — send to PDP to choose
     router.push(`/shop/${props.product.id}`)
     return
   }
 
-  // Exactly one variant — add directly
   quickState.value = 'loading'
   await new Promise(r => setTimeout(r, 300))
   cart.addItem({
@@ -72,7 +93,7 @@ async function onQuickAdd(e: Event) {
     name: props.product.name,
     size: candidates[0].size,
     color: candidates[0].color,
-    priceUSD: props.product.priceUSD,
+    priceUSD: Number(candidates[0].price_usd),
     quantity: 1,
   })
   quickState.value = 'success'
@@ -89,7 +110,7 @@ async function onQuickAdd(e: Event) {
       <ImageWithReveal
         v-if="primaryImage"
         :src="primaryImage.url"
-        :alt="primaryImage.alt || product.name"
+        :alt="primaryImage.alt_text ?? product.name"
         class="w-full h-full object-cover transition-transform duration-[var(--duration-slow)] ease-[var(--ease-luxury)] group-hover:scale-[1.03]"
       />
       <!-- Editorial color placeholder when no image -->
@@ -133,8 +154,8 @@ async function onQuickAdd(e: Event) {
     <!-- Card info -->
     <div class="mt-3 flex flex-col gap-1.5">
       <StatusLabel
-        :category="product.line"
-        :status="status ?? product.style"
+        :category="lineLabel"
+        :status="status ?? styleLabel"
       />
       <RouterLink :to="`/shop/${product.id}`">
         <h3 class="text-[length:var(--text-small)] font-medium uppercase tracking-[var(--tracking-label)] hover:opacity-70 transition-opacity duration-[var(--duration-fast)]">
@@ -142,7 +163,7 @@ async function onQuickAdd(e: Event) {
         </h3>
       </RouterLink>
       <p class="text-[length:var(--text-small)] text-[color:var(--color-on-surface)] opacity-60">
-        ${{ product.priceUSD.toFixed(2) }} USD
+        ${{ displayPrice.toFixed(2) }} USD
       </p>
       <!-- Color swatches -->
       <div v-if="uniqueColors.length > 0" class="flex gap-1.5 mt-1">

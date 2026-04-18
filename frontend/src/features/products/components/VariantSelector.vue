@@ -32,7 +32,7 @@ const sizes = computed(() => {
 // Check if a size is in stock for the selected color
 function isSizeInStock(size: string) {
   const match = props.variants.find(
-    (v) => v.size === size && (props.selectedColor ? v.color === props.selectedColor : true) && v.stock > 0
+    (v) => v.size === size && (props.selectedColor ? v.color === props.selectedColor : true) && v.stock_qty > 0
   )
   return !!match
 }
@@ -40,7 +40,7 @@ function isSizeInStock(size: string) {
 // The resolved variant for the current selection
 const resolvedVariant = computed(() =>
   props.variants.find(
-    (v) => v.color === props.selectedColor && v.size === props.selectedSize && v.stock > 0
+    (v) => v.color === props.selectedColor && v.size === props.selectedSize && v.stock_qty > 0
   ) ?? null
 )
 
@@ -90,10 +90,10 @@ defineExpose({ resolvedVariant })
 
     <!-- Stock warning for resolved variant -->
     <p
-      v-if="resolvedVariant && resolvedVariant.stock <= 10"
+      v-if="resolvedVariant && resolvedVariant.stock_qty <= 10"
       class="text-[length:var(--text-micro)] text-[color:var(--color-amber-accent)] tracking-[var(--tracking-label)] uppercase"
     >
-      Only {{ resolvedVariant.stock }} left
+      Only {{ resolvedVariant.stock_qty }} left
     </p>
   </div>
 </template>
