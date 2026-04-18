@@ -1,0 +1,21 @@
+/* Vantier Admin Panel — Executive Minimalism tokens */
+:root {
+  --admin-bg:             #F9F7F2;
+  --admin-card:           #FFFFFF;
+  --admin-card-shadow:    0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04);
+  --admin-amber:          #C9A84C;
+  --admin-amber-08:       rgba(201,168,76,0.08);
+  --admin-amber-15:       rgba(201,168,76,0.15);
+  --admin-amber-20:       rgba(201,168,76,0.20);
+  --admin-border:         rgba(0,0,0,0.06);
+  --admin-text-primary:   #1A1714;
+  --admin-text-secondary: #8A857D;
+  --admin-sidebar-bg:     #141210;
+
+  /* Status — pastel pairs */
+  --status-ok-bg:   #F0FAF4; --status-ok-text:   #2D7A4F;
+  --status-warn-bg: #FDF7ED; --status-warn-text:  #92600F;
+  --status-crit-bg: #FEF2F2; --status-crit-text:  #B91C1C;
+  --status-ship-bg: #F5F3FF; --status-ship-text:  #6D28D9;
+  --status-pend-bg: #EFF6FF; --status-pend-text:  #1D4ED8;
+}

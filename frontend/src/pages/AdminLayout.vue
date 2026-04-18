@@ -1,22 +1,131 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@features/auth/store'
+import { useAdminInventoryStore } from '@features/admin/inventory/store'
 
-const route = useRoute()
+const route  = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
-const sidebarCollapsed = ref(false)
+const auth   = useAuthStore()
+const inventory = useAdminInventoryStore()
 
-const navItems = [
-  { to: '/admin/dashboard', label: 'Dashboard',   icon: 'M3 13l2-2m0 0l7-7 7 7M5 11v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { to: '/admin/inventory',  label: 'Inventory',   icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-  { to: '/admin/orders',     label: 'Orders',      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-  { to: '/admin/purchases',  label: 'Purchases',   icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
-  { to: '/admin/discounts',  label: 'Discounts',   icon: 'M7 7h.01M17 17h.01M8.5 4h7a1.5 1.5 0 011.5 1.5v13l-8-4-8 4V5.5A1.5 1.5 0 018.5 4z M9 9a3 3 0 100 6 3 3 0 000-6z' },
-  { to: '/admin/finances',   label: 'Financials',  icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-  { to: '/admin/users',      label: 'Users',       icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
-]
+const sidebarCollapsed = ref(false)
+const userName = ref<string | null>(null)
+
+// Try to get display name from Neon Auth session
+onMounted(async () => {
+  try {
+    const { authClient } = await import('@features/auth/auth-client')
+    const { data } = await authClient.getSession()
+    if (data) {
+      const user = (data as any).user ?? (data as any).session?.user
+      userName.value = user?.displayName ?? user?.primaryEmail?.split('@')[0] ?? null
+    }
+  } catch { /* fallback to role */ }
+  // Also ensure inventory is loaded for badge count
+  if (!inventory.products.length) inventory.loadProducts()
+})
+
+const lowStockCount = computed(() =>
+  inventory.products.reduce(
+    (n, p) => n + p.variants.filter(v => v.is_active && v.stock_qty <= 15).length, 0
+  )
+)
+
+interface NavItem  { to: string; label: string; icon: string; badge?: number }
+interface NavGroup { label: string; items: NavItem[] }
+
+const navGroups = computed<NavGroup[]>(() => [
+  {
+    label: 'Principal',
+    items: [
+      {
+        to: '/admin/dashboard', label: 'Dashboard',
+        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+      },
+      {
+        to: '/admin/inventory', label: 'Inventario',
+        icon: 'M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16',
+        badge: lowStockCount.value || undefined,
+      },
+      {
+        to: '/admin/orders', label: 'Órdenes',
+        icon: 'M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0',
+      },
+      {
+        to: '/admin/purchases', label: 'Compras',
+        icon: 'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z',
+      },
+    ],
+  },
+  {
+    label: 'Finanzas',
+    items: [
+      {
+        to: '/admin/discounts', label: 'Descuentos',
+        icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
+      },
+      {
+        to: '/admin/finances', label: 'Financiero',
+        icon: 'M22 12h-4l-3 9L9 3l-3 9H2',
+      },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      {
+        to: '/admin/users', label: 'Usuarios',
+        icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
+      },
+    ],
+  },
+])
+
+const ROUTE_TITLES: Record<string, string> = {
+  '/admin/dashboard':  'Dashboard',
+  '/admin/inventory':  'Inventario',
+  '/admin/orders':     'Órdenes',
+  '/admin/purchases':  'Compras',
+  '/admin/discounts':  'Descuentos',
+  '/admin/finances':   'Financiero',
+  '/admin/users':      'Usuarios',
+}
+
+const pageTitle = computed(() => {
+  for (const key of Object.keys(ROUTE_TITLES)) {
+    if (route.path.startsWith(key)) return ROUTE_TITLES[key]
+  }
+  return 'Admin'
+})
+
+const pageCrumb = computed(() => {
+  const crumbs: Record<string, string> = {
+    '/admin/dashboard': 'Vista general',
+    '/admin/inventory': 'Productos · Variantes · Stock',
+    '/admin/orders':    'Gestión de pedidos',
+    '/admin/purchases': 'Proveedores · Reposición de stock',
+    '/admin/discounts': 'Cupones y promociones',
+    '/admin/finances':  'Rentabilidad · Analíticas avanzadas',
+    '/admin/users':     'Acceso y roles',
+  }
+  for (const key of Object.keys(crumbs)) {
+    if (route.path.startsWith(key)) return crumbs[key]
+  }
+  return ''
+})
+
+const userInitial = computed(() => {
+  if (userName.value) {
+    const parts = userName.value.trim().split(' ')
+    return parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : parts[0][0].toUpperCase()
+  }
+  return auth.role?.charAt(0)?.toUpperCase() ?? 'A'
+})
+
+const displayName = computed(() => userName.value ?? auth.role ?? '—')
 
 function isActive(to: string) {
   return route.path.startsWith(to)
@@ -29,98 +138,156 @@ async function clearAuth() {
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-[color:var(--color-warm-beige)] text-[color:var(--color-on-surface)]">
+  <div class="min-h-screen flex" style="background: var(--admin-bg);">
 
-    <!-- Sidebar -->
+    <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
     <aside
-      class="flex flex-col border-r border-[color:var(--color-border)] bg-[color:var(--color-obsidian)] transition-[width] duration-[var(--duration-slow)] ease-[var(--ease-out-expo)]"
-      :class="sidebarCollapsed ? 'w-16' : 'w-56'"
+      class="flex flex-col flex-shrink-0 h-screen sticky top-0 transition-[width] duration-300 ease-out overflow-hidden"
+      :style="{ width: sidebarCollapsed ? '64px' : '240px', background: 'var(--admin-sidebar-bg)', boxShadow: '4px 0 24px rgba(0,0,0,0.18)' }"
     >
       <!-- Brand -->
-      <div class="h-16 flex items-center px-4 border-b border-white/10 flex-shrink-0">
-        <RouterLink to="/" class="flex items-center gap-3 overflow-hidden">
-          <span class="text-[color:var(--color-ivory)] font-bold uppercase tracking-[var(--tracking-display)] text-[length:var(--text-micro)] flex-shrink-0">V</span>
-          <span
-            class="text-[color:var(--color-ivory)] font-bold uppercase tracking-[var(--tracking-display)] text-[length:var(--text-micro)] whitespace-nowrap transition-[opacity,width] duration-[var(--duration-normal)]"
-            :class="sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100'"
-          >
-            Vantier
-          </span>
+      <div
+        class="flex items-center h-16 flex-shrink-0 gap-2 px-4 overflow-hidden"
+        style="border-bottom: 1px solid rgba(255,255,255,0.07);"
+      >
+        <RouterLink to="/" class="flex-1 min-w-0 overflow-hidden" :class="sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 transition-opacity duration-200'">
+          <p class="font-bold uppercase tracking-[0.2em] text-white" style="font-size: 0.85rem; letter-spacing: 0.22em;">VANTIER</p>
+          <p class="uppercase tracking-widest font-medium" style="font-size: 0.52rem; color: var(--admin-amber); letter-spacing: 0.2em;">Panel Administrativo</p>
         </RouterLink>
         <button
-          class="ml-auto text-white/40 hover:text-white/80 transition-colors duration-[var(--duration-fast)] flex-shrink-0"
-          :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          class="flex-shrink-0 w-6 h-6 flex items-center justify-center transition-colors duration-150"
+          style="color: rgba(255,255,255,0.35);"
           @click="sidebarCollapsed = !sidebarCollapsed"
         >
-          <svg class="w-4 h-4 transition-transform duration-[var(--duration-normal)]" :class="sidebarCollapsed ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg class="w-4 h-4 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
       </div>
 
       <!-- Nav -->
-      <nav class="flex-1 py-4 overflow-hidden">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-[var(--radius-md)] text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] transition-colors duration-[var(--duration-fast)] group"
-          :class="isActive(item.to)
-            ? 'bg-white/10 text-[color:var(--color-ivory)]'
-            : 'text-white/50 hover:text-white/80 hover:bg-white/5'"
-        >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path :d="item.icon" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span
-            class="whitespace-nowrap transition-[opacity,width] duration-[var(--duration-normal)] overflow-hidden"
-            :class="sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100'"
+      <nav class="flex-1 overflow-y-auto overflow-x-hidden py-2">
+        <template v-for="group in navGroups" :key="group.label">
+          <!-- Group label -->
+          <p
+            v-if="!sidebarCollapsed"
+            class="px-4 pt-4 pb-1.5 font-semibold uppercase select-none"
+            style="font-size: 0.55rem; color: rgba(255,255,255,0.22); letter-spacing: 0.2em;"
+          >{{ group.label }}</p>
+
+          <RouterLink
+            v-for="item in group.items"
+            :key="item.to"
+            :to="item.to"
+            class="flex items-center gap-2.5 mx-2 my-0.5 rounded-lg transition-all duration-150 relative overflow-hidden"
+            :class="sidebarCollapsed ? 'px-0 justify-center py-3' : 'px-3 py-2.5'"
+            :style="isActive(item.to)
+              ? { background: 'rgba(201,168,76,0.12)', color: 'var(--admin-amber)', borderLeft: sidebarCollapsed ? '3px solid transparent' : '3px solid var(--admin-amber)' }
+              : { color: 'rgba(255,255,255,0.45)', borderLeft: '3px solid transparent' }"
           >
-            {{ item.label }}
-          </span>
-          <!-- Active dot when collapsed -->
-          <span v-if="sidebarCollapsed && isActive(item.to)" class="absolute right-1 w-1.5 h-1.5 rounded-full bg-[color:var(--color-amber-accent)]" />
-        </RouterLink>
+            <svg class="w-[17px] h-[17px] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path :d="item.icon" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span
+              v-if="!sidebarCollapsed"
+              class="text-[0.72rem] font-medium flex-1 whitespace-nowrap overflow-hidden"
+            >{{ item.label }}</span>
+            <!-- Badge -->
+            <span
+              v-if="!sidebarCollapsed && item.badge"
+              class="text-[0.58rem] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+              style="background: rgba(201,168,76,0.2); color: var(--admin-amber);"
+            >{{ item.badge }}</span>
+          </RouterLink>
+        </template>
       </nav>
 
-      <!-- Footer: storefront link + logout -->
-      <div class="border-t border-white/10 py-4 px-2 space-y-1 flex-shrink-0">
-        <RouterLink
-          to="/"
-          target="_blank"
-          class="flex items-center gap-3 px-3 py-2 text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-white/40 hover:text-white/70 transition-colors duration-[var(--duration-fast)] rounded-[var(--radius-md)]"
-        >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span :class="sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">Storefront</span>
-        </RouterLink>
-        <button
-          class="w-full flex items-center gap-3 px-3 py-2 text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-white/40 hover:text-white/70 transition-colors duration-[var(--duration-fast)] rounded-[var(--radius-md)]"
-          @click="clearAuth"
-        >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span :class="sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'">Logout</span>
-        </button>
+      <!-- User card -->
+      <div class="flex-shrink-0" style="border-top: 1px solid rgba(255,255,255,0.07);">
+        <template v-if="!sidebarCollapsed">
+          <div class="p-4 space-y-3">
+            <div class="flex items-center gap-2.5">
+              <div
+                class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold flex-shrink-0"
+                style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff; box-shadow: 0 2px 8px rgba(201,168,76,0.3);"
+              >{{ userInitial }}</div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[0.78rem] font-semibold text-white truncate">{{ displayName }}</p>
+                <p class="text-[0.58rem] uppercase font-medium tracking-widest" style="color: var(--admin-amber);">{{ auth.role ?? '' }}</p>
+              </div>
+            </div>
+            <div class="flex gap-4 text-[0.65rem] uppercase tracking-wider pl-0.5">
+              <RouterLink
+                to="/"
+                class="transition-colors duration-150 flex items-center gap-1"
+                style="color: rgba(255,255,255,0.35);"
+              >
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round"/>
+                </svg>
+                Ver tienda
+              </RouterLink>
+              <button
+                class="transition-colors duration-150 flex items-center gap-1"
+                style="color: rgba(255,255,255,0.35);"
+                @click="clearAuth"
+              >
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="p-3 flex flex-col items-center gap-2">
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold cursor-pointer"
+              style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff;"
+              @click="clearAuth"
+            >{{ userInitial }}</div>
+          </div>
+        </template>
       </div>
     </aside>
 
-    <!-- Main content -->
+    <!-- ── MAIN AREA ───────────────────────────────────────────── -->
     <div class="flex-1 flex flex-col min-w-0">
-      <!-- Top bar -->
-      <header class="h-16 border-b border-[color:var(--color-border)] bg-[color:var(--color-ivory)] flex items-center px-6 gap-4 flex-shrink-0">
-        <div class="flex-1">
-          <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">
-            Admin Panel
-          </p>
+
+      <!-- Topbar -->
+      <header
+        class="h-[58px] flex items-center px-6 gap-6 flex-shrink-0 bg-white z-10"
+        style="box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);"
+      >
+        <div class="flex-1 min-w-0">
+          <p class="text-[1rem] font-bold truncate" style="color: var(--admin-text-primary); letter-spacing: -0.01em;">{{ pageTitle }}</p>
+          <p class="text-[0.68rem]" style="color: var(--admin-text-secondary);">{{ pageCrumb }}</p>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-full bg-[color:var(--color-obsidian)] flex items-center justify-center text-[color:var(--color-ivory)] text-[10px] font-bold">
-            {{ auth.role?.charAt(0) ?? '?' }}
-          </div>
-          <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">{{ auth.role ?? '—' }}</span>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <!-- Search -->
+          <button
+            class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors duration-150"
+            style="color: var(--admin-text-secondary);"
+          >
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <!-- Bell -->
+          <button
+            class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors duration-150"
+            style="color: var(--admin-text-secondary);"
+          >
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <!-- Avatar -->
+          <div
+            class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold ml-1 cursor-default"
+            style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff;"
+          >{{ userInitial }}</div>
         </div>
       </header>
 
