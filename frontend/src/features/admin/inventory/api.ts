@@ -83,7 +83,6 @@ export async function uploadVariantImage(
   const { data } = await apiClient.post<ProductImage>(
     `/products/${productId}/variants/${variantId}/images/upload`,
     form,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
   )
   return data
 }

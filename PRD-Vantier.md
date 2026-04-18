@@ -479,8 +479,8 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 - [ ] Wire KPI cards to real backend data (revenue, orders, low stock, exchanges)
 - [ ] Recent orders table from real `GET /api/v1/orders`
 
-#### 3.3 Admin — Orders Module
-- [ ] List orders with status filter → `GET /api/v1/orders`
+#### 3.3 Admin — Orders Module ✅ DISPLAY WORKING
+- [x] List orders wired → `GET /api/v1/orders` (array→paginated adapter in frontend)
 - [ ] Order detail modal → status update `PATCH /api/v1/orders/:id/status`
 - [ ] Generate shipping label → `POST /api/v1/orders/:id/shipping-label`
 
@@ -500,10 +500,13 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 - [ ] CatalogPage filters → `GET /api/v1/products?line=&size=&style=`
 - [ ] ProductDetailPage images from Cloudflare R2 URLs
 
-#### 3.8 Storefront — Cart & Checkout
-- [ ] Cart Pinia store, free shipping banner (5+ items), discount code validation
-- [ ] Checkout: address form, shipping rate via envia.com, Stripe payment form
-- [ ] Order confirmation screen + email trigger via Resend
+#### 3.8 Storefront — Cart & Checkout ✅ CORE FLOW COMPLETE
+- [x] Cart Pinia store, free shipping banner (5+ items), discount code validation
+- [x] Checkout: address form, shipping rate, Stripe Checkout Session redirect
+- [x] `/checkout/success` + `/checkout/cancel` routes
+- [x] Order confirmation screen + Resend HTML email (branded template, out of spam)
+- [x] Image upload CORS fixed (multipart boundary issue)
+- [x] Stripe webhook verified (WebhookSignature.verify_header, SDK v15 compatible)
 
 #### 3.9 Storefront — Customer Account (optional, no registration required)
 - [ ] Order lookup by email (guest-friendly)
@@ -554,12 +557,12 @@ All slice files exist. Implementation order: **2.8 → 2.5 → 2.4 → 2.6 → 2
 | 4 | Confirm Stripe account (US entity or MX?) + credentials | Vantier | ⛔ **Blocking 2.5 stripe_client** |
 | 5 | Confirm operating cost in USD (currently ~$580 MXN/order) | Vantier | Needed for margin calc |
 | 6 | Define product color catalog per variant | Vantier | Needed for Phase 2 products |
-| 7 | Verify `vantierluxuryla.com` domain DNS in Resend dashboard | Dev/Client | ⚠️ Pending — email sends will fail until done |
+| 7 | Verify `vantierluxuryla.com` domain DNS in Resend dashboard | Dev/Client | ✅ Verified 2026-04-18 — branded HTML emails confirmed delivered |
 | 8 | Auth QA real — flujo completo end-to-end | Dev | ✅ Resuelto 2026-04-17 — bug `NEON_AUTH_AUDIENCE` corregido. Login → JWT (EdDSA) → `/users/me` → role `owner` → redirect `/admin/dashboard` funcional |
 | 9 | Cloudflare R2 bucket conectado | Dev | ✅ Completo — `cloudflare_client.py`, upload de imágenes de producto en producción |
 
 ---
 
-*PRD Version: 2.6 — April 2026*
+*PRD Version: 2.7 — April 2026*
 *Stack: FastAPI · Neon PostgreSQL · Neon Auth · Resend · Stripe · envia.com · Vue 3 · Tailwind CSS · Cloudflare R2*
-*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Phase 3 in progress — auth E2E verified, admin login → dashboard funcional, Inventory module live. Next: Admin Dashboard → Orders → Discounts → Storefront.*
+*Phase 1 complete. Phase 2 complete (99 tests, 49 routes). Phase 3 in progress — Stripe Checkout Sessions E2E verified, Resend HTML emails live, image uploads fixed, admin orders display working. Next: Admin Dashboard KPIs → Order detail/status → Discounts → Storefront catalog.*

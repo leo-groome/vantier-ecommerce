@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useCheckoutStore } from '../store'
+import { useCartStore } from '@features/cart/store'
+import { createOrder } from '../api'
 import type { ShippingRate } from '../types'
 import CheckoutStepper from './CheckoutStepper.vue'
 import GuestEmailInput from './GuestEmailInput.vue'
@@ -14,10 +15,12 @@ import SeoHead from '@shared/components/SeoHead.vue'
 import DiscountCodeInput from '@features/cart/components/DiscountCodeInput.vue'
 
 const checkout = useCheckoutStore()
-const router = useRouter()
+const cart = useCartStore()
 
 const guestEmail = ref('')
 const addressData = ref<AddressData | null>(null)
+const submitting = ref(false)
+const paymentError = ref('')
 
 function onAddressSubmit(data: AddressData) {
   addressData.value = data
@@ -32,14 +35,35 @@ function onShippingContinue() {
   if (checkout.shippingRate) checkout.step = 'payment'
 }
 
-function onPaymentSuccess(paymentIntentId: string) {
-  checkout.paymentIntentId = paymentIntentId
-  // Generate a placeholder order ID — real ID comes from backend response
-  router.push(`/order-confirm/${paymentIntentId.slice(-8).toUpperCase()}`)
-}
+async function handlePaymentSubmit() {
+  if (submitting.value || !addressData.value) return
+  submitting.value = true
+  paymentError.value = ''
 
-function onPaymentError(msg: string) {
-  console.error('Payment error:', msg)
+  const addr = addressData.value
+  try {
+    const result = await createOrder({
+      customer_email: guestEmail.value,
+      customer_name: `${addr.firstName} ${addr.lastName}`,
+      items: cart.items.map(i => ({ variant_id: i.variantId, qty: i.quantity })),
+      shipping_address: {
+        full_name: `${addr.firstName} ${addr.lastName}`,
+        line1: addr.address1,
+        line2: addr.address2 || undefined,
+        city: addr.city,
+        state: addr.state,
+        zip: addr.zip,
+        country: addr.country,
+        phone: addr.phone || undefined,
+      },
+      discount_code: checkout.discountCode || null,
+    })
+    window.location.href = result.checkout_url
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+    paymentError.value = msg
+    submitting.value = false
+  }
 }
 </script>
 
@@ -94,8 +118,9 @@ function onPaymentError(msg: string) {
             <DiscountCodeInput />
           </div>
           <StripePaymentForm
-            @success="onPaymentSuccess"
-            @error="onPaymentError"
+            :loading="submitting"
+            :error="paymentError"
+            @submit="handlePaymentSubmit"
           />
         </template>
       </div>

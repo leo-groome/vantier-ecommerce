@@ -2,13 +2,17 @@ import { apiClient } from '@shared/api/client'
 import type { AdminOrder, AdminOrderListResponse, OrderStatus, OrderFilters } from './types'
 
 export async function listAdminOrders(filters: OrderFilters = {}): Promise<AdminOrderListResponse> {
-  const params: Record<string, any> = {
+  const params: Record<string, unknown> = {
     page: filters.page ?? 1,
     page_size: filters.page_size ?? 50,
   }
   if (filters.status && filters.status !== 'all') params.status = filters.status
   if (filters.customer_email) params.customer_email = filters.customer_email
-  const { data } = await apiClient.get<AdminOrderListResponse>('/orders', { params })
+  const { data } = await apiClient.get<AdminOrder[] | AdminOrderListResponse>('/orders', { params })
+  // Backend returns a plain array — wrap it into the paginated shape the store expects
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length, page: filters.page ?? 1, page_size: filters.page_size ?? 50 }
+  }
   return data
 }
 

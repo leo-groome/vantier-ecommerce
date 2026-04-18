@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def _get_stripe() -> None:
     """Configure the Stripe SDK with the secret key from settings."""
     settings = get_settings()
-    if not settings.stripe_secret_key or settings.stripe_secret_key.startswith("sk_test_..."):
+    if not settings.stripe_secret_key or settings.stripe_secret_key in ("sk_test_...", "sk_live_...", ""):
         raise AppException("Stripe secret key not configured", status_code=503)
     stripe.api_key = settings.stripe_secret_key
 
@@ -69,25 +69,29 @@ async def create_checkout_session(
 
 
 def verify_webhook_signature(payload: bytes, sig_header: str) -> bool:
-    """Verify Stripe webhook signature using the configured webhook secret.
+    """Verify Stripe webhook signature (SDK v15 compatible).
+
+    Uses ``WebhookSignature.verify_header`` directly to avoid the Event
+    object construction step in ``construct_event``, which fails in v15
+    without a configured API requestor.
 
     Args:
-        payload: Raw request body bytes (must NOT be decoded).
+        payload: Raw request body bytes.
         sig_header: Value of the ``stripe-signature`` header.
 
     Returns:
-        True if the signature is valid.
+        True if signature is valid.
 
     Raises:
-        AppException: If webhook secret is missing or signature is invalid.
+        AppException: If webhook secret is not configured.
     """
     settings = get_settings()
-    if not settings.stripe_webhook_secret or settings.stripe_webhook_secret.startswith("whsec_..."):
+    if not settings.stripe_webhook_secret or settings.stripe_webhook_secret in ("whsec_...", ""):
         raise AppException("Stripe webhook secret not configured", status_code=503)
 
     try:
         stripe.WebhookSignature.verify_header(
-            payload,
+            payload.decode("utf-8"),
             sig_header,
             settings.stripe_webhook_secret,
             tolerance=300,
@@ -95,4 +99,7 @@ def verify_webhook_signature(payload: bytes, sig_header: str) -> bool:
         return True
     except stripe.SignatureVerificationError as exc:
         logger.warning("Stripe webhook signature verification failed: %s", exc)
+        return False
+    except Exception as exc:
+        logger.error("Stripe webhook verification error: %s | type=%s", exc, type(exc).__name__)
         return False
