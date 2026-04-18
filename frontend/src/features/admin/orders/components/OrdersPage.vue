@@ -159,11 +159,7 @@ onMounted(() => {
 <template>
   <div class="space-y-5">
 
-    <!-- Header -->
-    <div>
-      <h1 class="text-[1.5rem] font-bold" style="color: var(--admin-text-primary);">Órdenes</h1>
-      <p class="text-[0.8rem] mt-0.5" style="color: var(--admin-text-secondary);">Gestión de pedidos</p>
-    </div>
+
 
     <!-- KPI cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import AdminButton from '@features/admin/components/shared/AdminButton.vue'
+import StatusBadge from '@features/admin/components/shared/StatusBadge.vue'
 
 interface Discount {
   id: string
@@ -86,195 +88,191 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-end justify-between gap-4">
-      <div>
-        <p class="text-xs uppercase tracking-widest text-[color:var(--color-border-strong)]">Promotions</p>
-        <h1 class="mt-1 text-2xl font-semibold uppercase tracking-wider text-[color:var(--color-obsidian)]">Discounts</h1>
-      </div>
-      <button
-        class="flex items-center gap-2 px-4 py-2.5 bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-xs uppercase tracking-widest rounded-[var(--radius-md)] hover:opacity-80 transition-opacity duration-[var(--duration-fast)]"
-        @click="showCreate = true"
-      >
+    <!-- Actions -->
+    <div class="flex justify-end">
+      <AdminButton variant="primary" @click="showCreate = true">
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        New Code
-      </button>
+        Nuevo Código
+      </AdminButton>
     </div>
 
     <!-- Skeleton -->
     <div v-if="loading" class="space-y-3">
-      <div v-for="i in 4" :key="i" class="h-16 rounded-[var(--radius-md)] bg-[color:var(--color-warm-beige-dk)] animate-pulse" />
+      <div v-for="i in 4" :key="i" class="h-14 rounded-xl animate-pulse" style="background: rgba(0,0,0,0.06);" />
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-[color:var(--color-ivory)] border border-[color:var(--color-border)] rounded-[var(--radius-md)] overflow-hidden">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="bg-[color:var(--color-warm-beige)] text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] border-b border-[color:var(--color-border)]">
-            <th class="px-5 py-3 text-left font-medium">Code</th>
-            <th class="px-5 py-3 text-left font-medium">Discount</th>
-            <th class="px-5 py-3 text-right font-medium">Min Items</th>
-            <th class="px-5 py-3 text-right font-medium">Usage</th>
-            <th class="px-5 py-3 text-left font-medium">Expires</th>
-            <th class="px-5 py-3 text-center font-medium">Active</th>
-            <th class="px-5 py-3 text-right font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-[color:var(--color-border)]">
-          <tr
-            v-for="d in discounts"
-            :key="d.id"
-            class="hover:bg-[color:var(--color-warm-beige)] transition-colors duration-[var(--duration-fast)]"
-            :class="{ 'opacity-50': !d.active }"
-          >
-            <td class="px-5 py-3.5">
-              <span class="font-mono text-sm font-medium text-[color:var(--color-obsidian)] bg-[color:var(--color-warm-beige)] px-2 py-0.5 rounded-[var(--radius-sm)]">{{ d.code }}</span>
-            </td>
-            <td class="px-5 py-3.5 text-[color:var(--color-obsidian)]">
-              {{ d.type === 'percentage' ? `${d.value}% off` : `$${d.value} off` }}
-            </td>
-            <td class="px-5 py-3.5 text-right text-[color:var(--color-border-strong)]">{{ d.minItems }}</td>
-            <td class="px-5 py-3.5 text-right">
-              <span class="text-[color:var(--color-obsidian)]">{{ d.usageCount }}</span>
-              <span v-if="d.maxUsage" class="text-[color:var(--color-border-strong)]"> / {{ d.maxUsage }}</span>
-              <span v-if="d.maxUsage && d.usageCount >= d.maxUsage" class="ml-1.5 text-xs text-red-500">Exhausted</span>
-            </td>
-            <td class="px-5 py-3.5 text-sm text-[color:var(--color-border-strong)]">
-              {{ d.expiresAt ?? '—' }}
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex justify-center">
-                <button
-                  class="w-10 h-5 rounded-full transition-colors duration-[var(--duration-normal)] relative flex-shrink-0"
-                  :class="d.active ? 'bg-[color:var(--color-obsidian)]' : 'bg-[color:var(--color-border)]'"
-                  :disabled="togglingId === d.id"
-                  :aria-label="d.active ? 'Deactivate' : 'Activate'"
-                  @click="toggleActive(d)"
-                >
-                  <span
-                    class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-[var(--duration-normal)]"
-                    :class="d.active ? 'translate-x-5' : 'translate-x-0.5'"
-                  />
-                </button>
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-right">
-              <button
-                class="text-xs text-red-500 hover:text-red-700 uppercase tracking-wider transition-colors disabled:opacity-40"
-                :disabled="deletingId === d.id"
-                @click="deleteDiscount(d.id)"
-              >
-                <span v-if="deletingId === d.id" class="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                <span v-else>Delete</span>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else class="bg-white rounded-xl overflow-hidden" style="box-shadow: var(--admin-card-shadow);">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr style="background: var(--admin-bg);">
+              <th class="px-6 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Código</th>
+              <th class="px-6 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Descuento</th>
+              <th class="px-6 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Mín. Items</th>
+              <th class="px-6 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Uso</th>
+              <th class="px-6 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Expira</th>
+              <th class="px-6 py-3 text-center font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Estado</th>
+              <th class="px-6 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y" style="border-color: var(--admin-border);">
+            <tr
+              v-for="d in discounts"
+              :key="d.id"
+              class="hover:bg-black/[0.01] transition-colors"
+              :class="{ 'opacity-50': !d.active }"
+            >
+              <td class="px-6 py-4">
+                <span class="font-mono text-[0.82rem] font-bold p-1 rounded bg-black/5" style="color: var(--admin-text-primary);">{{ d.code }}</span>
+              </td>
+              <td class="px-6 py-4 text-[0.82rem]" style="color: var(--admin-text-primary);">
+                {{ d.type === 'percentage' ? `${d.value}% off` : `$${d.value} off` }}
+              </td>
+              <td class="px-6 py-4 text-right text-[0.82rem]" style="color: var(--admin-text-secondary);">{{ d.minItems }}</td>
+              <td class="px-6 py-4 text-right">
+                <span class="text-[0.82rem] font-medium" style="color: var(--admin-text-primary);">{{ d.usageCount }}</span>
+                <span v-if="d.maxUsage" class="text-[0.72rem]" style="color: var(--admin-text-secondary);"> / {{ d.maxUsage }}</span>
+                <span v-if="d.maxUsage && d.usageCount >= d.maxUsage" class="ml-1.5 text-[0.65rem] font-bold uppercase text-red-500">Agotado</span>
+              </td>
+              <td class="px-6 py-4 text-[0.75rem]" style="color: var(--admin-text-secondary);">
+                {{ d.expiresAt ?? '—' }}
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex justify-center">
+                  <StatusBadge :status="d.active ? 'activo' : 'inactivo'" />
+                </div>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <button
+                    class="text-[0.7rem] uppercase font-bold tracking-widest px-2 py-1 rounded transition-colors"
+                    :style="{ color: d.active ? 'var(--admin-text-secondary)' : 'var(--admin-amber)' }"
+                    :disabled="togglingId === d.id"
+                    @click="toggleActive(d)"
+                  >
+                    {{ d.active ? 'Desactivar' : 'Activar' }}
+                  </button>
+                  <button
+                    class="text-[0.7rem] uppercase font-bold tracking-widest text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors disabled:opacity-40"
+                    :disabled="deletingId === d.id"
+                    @click="deleteDiscount(d.id)"
+                  >
+                    <span v-if="deletingId === d.id" class="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                    <span v-else>Eliminar</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Create modal -->
     <Teleport to="body">
-      <Transition name="modal-fade">
+      <Transition name="modal">
         <div v-if="showCreate" class="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showCreate = false; resetForm()" />
-          <div class="relative w-full max-w-md bg-[color:var(--color-ivory)] rounded-[var(--radius-md)] shadow-2xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-[color:var(--color-border)] flex items-center justify-between">
-              <p class="text-xs uppercase tracking-widest font-semibold text-[color:var(--color-obsidian)]">New Discount Code</p>
-              <button class="p-1.5 hover:opacity-70 transition-opacity" @click="showCreate = false; resetForm()">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
+          <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between">
+              <h2 class="text-[0.9rem] font-semibold" style="color: var(--admin-text-primary);">Nuevo Código de Descuento</h2>
+              <button style="color: var(--admin-text-secondary);" @click="showCreate = false; resetForm()">✕</button>
             </div>
 
-            <div class="px-6 py-5 space-y-4">
+            <div class="space-y-4">
               <!-- Code -->
               <div>
-                <label class="block text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] mb-1.5">Code</label>
+                <label class="text-[0.65rem] uppercase tracking-wider block mb-1.5" style="color: var(--admin-text-secondary);">Código</label>
                 <input
                   v-model="form.code"
                   type="text"
-                  placeholder="e.g. SUMMER25"
-                  class="w-full border border-[color:var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
+                  placeholder="ej. VERANO2024"
+                  class="w-full border rounded-lg px-3 py-2 text-[0.82rem] font-mono focus:outline-none"
+                  style="border-color: rgba(0,0,0,0.12); color: var(--admin-text-primary);"
                 />
               </div>
 
               <!-- Type + Value -->
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] mb-1.5">Type</label>
+                  <label class="text-[0.65rem] uppercase tracking-wider block mb-1.5" style="color: var(--admin-text-secondary);">Tipo</label>
                   <select
                     v-model="form.type"
-                    class="w-full border border-[color:var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm bg-[color:var(--color-ivory)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
+                    class="w-full border rounded-lg px-3 py-2 text-[0.82rem] bg-white focus:outline-none"
+                    style="border-color: rgba(0,0,0,0.12); color: var(--admin-text-primary);"
                   >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed ($)</option>
+                    <option value="percentage">Porcentaje (%)</option>
+                    <option value="fixed">Fijo ($)</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] mb-1.5">Value</label>
+                  <label class="text-[0.65rem] uppercase tracking-wider block mb-1.5" style="color: var(--admin-text-secondary);">Valor</label>
                   <input
                     v-model.number="form.value"
                     type="number"
                     min="1"
-                    class="w-full border border-[color:var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
+                    class="w-full border rounded-lg px-3 py-2 text-[0.82rem] focus:outline-none"
+                    style="border-color: rgba(0,0,0,0.12); color: var(--admin-text-primary);"
                   />
                 </div>
               </div>
 
               <!-- Min Items + Max Usage -->
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] mb-1.5">Min Items</label>
+                  <label class="text-[0.65rem] uppercase tracking-wider block mb-1.5" style="color: var(--admin-text-secondary);">Mín. Items</label>
                   <input
                     v-model.number="form.minItems"
                     type="number"
                     min="1"
-                    class="w-full border border-[color:var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
+                    class="w-full border rounded-lg px-3 py-2 text-[0.82rem] focus:outline-none"
+                    style="border-color: rgba(0,0,0,0.12); color: var(--admin-text-primary);"
                   />
                 </div>
                 <div>
-                  <label class="block text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] mb-1.5">Max Uses (blank = unlimited)</label>
+                  <label class="text-[0.65rem] uppercase tracking-wider block mb-1.5" style="color: var(--admin-text-secondary);">Usos Máx. (vacio = ∞)</label>
                   <input
                     v-model="form.maxUsage"
                     type="number"
                     min="1"
                     placeholder="∞"
-                    class="w-full border border-[color:var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
+                    class="w-full border rounded-lg px-3 py-2 text-[0.82rem] focus:outline-none"
+                    style="border-color: rgba(0,0,0,0.12); color: var(--admin-text-primary);"
                   />
                 </div>
               </div>
 
               <!-- Expires -->
               <div>
-                <label class="block text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] mb-1.5">Expires At (optional)</label>
+                <label class="text-[0.65rem] uppercase tracking-wider block mb-1.5" style="color: var(--admin-text-secondary);">Expira el (opcional)</label>
                 <input
                   v-model="form.expiresAt"
                   type="date"
-                  class="w-full border border-[color:var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm bg-[color:var(--color-ivory)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
+                  class="w-full border rounded-lg px-3 py-2 text-[0.82rem] focus:outline-none"
+                  style="border-color: rgba(0,0,0,0.12); color: var(--admin-text-primary);"
                 />
               </div>
 
               <!-- Error -->
-              <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
+              <p v-if="createError" class="text-[0.72rem] text-red-600">{{ createError }}</p>
             </div>
 
-            <div class="px-6 py-4 border-t border-[color:var(--color-border)] flex items-center justify-end gap-3">
+            <div class="flex justify-end gap-3 pt-1">
               <button
-                class="px-4 py-2 text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] hover:text-[color:var(--color-obsidian)] transition-colors"
+                class="text-[0.75rem] px-4 py-2"
+                style="color: var(--admin-text-secondary);"
                 @click="showCreate = false; resetForm()"
-              >Cancel</button>
-              <button
-                class="flex items-center gap-2 px-4 py-2 bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-xs uppercase tracking-widest rounded-[var(--radius-md)] hover:opacity-80 transition-opacity disabled:opacity-50"
-                :disabled="creating"
+              >Cancelar</button>
+              <AdminButton
+                variant="primary"
+                :loading="creating"
                 @click="createDiscount"
               >
-                <span v-if="creating" class="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                Create
-              </button>
+                Crear Descuento
+              </AdminButton>
             </div>
           </div>
         </div>
@@ -284,7 +282,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.modal-fade-enter-active { transition: opacity var(--duration-normal) ease; }
-.modal-fade-leave-active { transition: opacity var(--duration-fast) ease; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-enter-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.modal-leave-active { transition: opacity 0.1s ease, transform 0.1s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
 </style>

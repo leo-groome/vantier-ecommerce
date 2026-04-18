@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import AdminStatCard from '@features/admin/components/shared/AdminStatCard.vue'
+import AdminFilterBar from '@features/admin/components/shared/AdminFilterBar.vue'
+import StatusBadge from '@features/admin/components/shared/StatusBadge.vue'
+import type { AdminStatus } from '@features/admin/components/shared/StatusBadge.vue'
 
 type UserRole = 'owner' | 'admin' | 'customer'
 
@@ -19,12 +23,6 @@ const loading = ref(true)
 const search = ref('')
 const roleFilter = ref<UserRole | 'all'>('all')
 
-const ROLE_COLORS: Record<UserRole, string> = {
-  owner:    'text-purple-700 bg-purple-50 border-purple-200',
-  admin:    'text-blue-700 bg-blue-50 border-blue-200',
-  customer: 'text-[color:var(--color-border-strong)] bg-[color:var(--color-warm-beige)] border-[color:var(--color-border)]',
-}
-
 const filtered = computed(() => {
   let list = users.value
   if (roleFilter.value !== 'all') list = list.filter(u => u.role === roleFilter.value)
@@ -41,6 +39,11 @@ const counts = computed(() => ({
   admin: users.value.filter(u => u.role === 'admin').length,
   customer: users.value.filter(u => u.role === 'customer').length,
 }))
+
+function roleStatus(role: UserRole): AdminStatus {
+  if (role === 'owner') return 'activo'
+  return 'ok'
+}
 
 onMounted(() => {
   setTimeout(() => {
@@ -62,109 +65,92 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div>
-      <p class="text-xs uppercase tracking-widest text-[color:var(--color-border-strong)]">Access</p>
-      <h1 class="mt-1 text-2xl font-semibold uppercase tracking-wider text-[color:var(--color-obsidian)]">Users</h1>
+
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <AdminStatCard label="Total" :value="String(counts.all)" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      <AdminStatCard label="Owners" :value="String(counts.owner)" icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      <AdminStatCard label="Admins" :value="String(counts.admin)" icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      <AdminStatCard label="Clientes" :value="String(counts.customer)" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </div>
 
-    <!-- Controls -->
-    <div class="flex flex-wrap items-center gap-3">
-      <!-- Search -->
-      <div class="relative">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[color:var(--color-border-strong)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/>
-        </svg>
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search users…"
-          class="pl-9 pr-4 py-2 text-sm border border-[color:var(--color-border)] rounded-[var(--radius-md)] bg-[color:var(--color-ivory)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
-        />
-      </div>
-
-      <!-- Role tabs -->
-      <div class="flex gap-1.5">
-        <button
-          v-for="r in ['all', 'owner', 'admin', 'customer']"
-          :key="r"
-          class="flex items-center gap-1.5 px-3 py-1.5 text-xs uppercase tracking-widest rounded-[var(--radius-md)] border transition-colors duration-[var(--duration-fast)]"
-          :class="roleFilter === r
-            ? 'bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] border-[color:var(--color-obsidian)]'
-            : 'border-[color:var(--color-border)] text-[color:var(--color-border-strong)] hover:border-[color:var(--color-obsidian)] hover:text-[color:var(--color-obsidian)]'"
-          @click="roleFilter = r as any"
-        >
-          {{ r }}
-          <span class="font-semibold">{{ counts[r as keyof typeof counts] ?? 0 }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Skeleton -->
-    <div v-if="loading" class="space-y-3">
-      <div v-for="i in 5" :key="i" class="h-16 rounded-[var(--radius-md)] bg-[color:var(--color-warm-beige-dk)] animate-pulse" />
-    </div>
-
-    <!-- Table -->
-    <div v-else class="bg-[color:var(--color-ivory)] border border-[color:var(--color-border)] rounded-[var(--radius-md)] overflow-hidden">
-      <div v-if="filtered.length === 0" class="py-12 text-center text-sm text-[color:var(--color-border-strong)]">
-        No users found.
-      </div>
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="bg-[color:var(--color-warm-beige)] text-xs uppercase tracking-widest text-[color:var(--color-border-strong)] border-b border-[color:var(--color-border)]">
-            <th class="px-5 py-3 text-left font-medium">User</th>
-            <th class="px-5 py-3 text-center font-medium">Role</th>
-            <th class="px-5 py-3 text-right font-medium">Orders</th>
-            <th class="px-5 py-3 text-right font-medium">Total Spent</th>
-            <th class="px-5 py-3 text-right font-medium">Joined</th>
-            <th class="px-5 py-3 text-center font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-[color:var(--color-border)]">
-          <tr
-            v-for="user in filtered"
-            :key="user.id"
-            class="hover:bg-[color:var(--color-warm-beige)] transition-colors duration-[var(--duration-fast)]"
+    <!-- Table Card -->
+    <div class="bg-white rounded-xl overflow-hidden" style="box-shadow: var(--admin-card-shadow);">
+      <!-- Filters -->
+      <div class="px-6 py-4 border-b flex flex-col md:flex-row md:items-center justify-between gap-4" style="border-color: var(--admin-border);">
+        <p class="text-[0.72rem] font-semibold uppercase tracking-wider" style="color: var(--admin-text-primary);">Lista de Usuarios</p>
+        <AdminFilterBar v-model="search" placeholder="Buscar por nombre o email…">
+          <select
+            v-model="roleFilter"
+            class="h-8 px-3 text-[0.75rem] rounded-lg appearance-none cursor-pointer focus:outline-none bg-white border"
+            style="border-color: rgba(0,0,0,0.1); color: var(--admin-text-primary);"
           >
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-[color:var(--color-obsidian)] flex items-center justify-center text-[color:var(--color-ivory)] text-xs font-bold flex-shrink-0">
-                  {{ user.name.charAt(0) }}
+            <option value="all">Todos los roles</option>
+            <option value="owner">Owner</option>
+            <option value="admin">Admin</option>
+            <option value="customer">Customer</option>
+          </select>
+        </AdminFilterBar>
+      </div>
+
+      <!-- Skeleton -->
+      <div v-if="loading" class="p-6 space-y-4">
+        <div v-for="i in 5" :key="i" class="h-12 rounded-lg animate-pulse" style="background: rgba(0,0,0,0.06);" />
+      </div>
+
+      <!-- Table -->
+      <div v-else class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr style="background: var(--admin-bg);">
+              <th class="px-6 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Usuario / Email</th>
+              <th class="px-6 py-3 text-center font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Rol</th>
+              <th class="px-6 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Órdenes</th>
+              <th class="px-6 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Inversión</th>
+              <th class="px-6 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Registro</th>
+              <th class="px-6 py-3 text-center font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y" style="border-color: var(--admin-border);">
+            <tr
+              v-for="user in filtered"
+              :key="user.id"
+              class="hover:bg-black/[0.01] transition-colors"
+            >
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-[0.7rem] font-bold text-white flex-shrink-0"
+                    style="background: linear-gradient(135deg, var(--admin-amber), #a07820);"
+                  >
+                    {{ user.name.charAt(0) }}
+                  </div>
+                  <div>
+                    <p class="text-[0.82rem] font-bold" style="color: var(--admin-text-primary);">{{ user.name }}</p>
+                    <p class="text-[0.72rem]" style="color: var(--admin-text-secondary);">{{ user.email }}</p>
+                  </div>
                 </div>
-                <div>
-                  <p class="font-medium text-[color:var(--color-obsidian)]">{{ user.name }}</p>
-                  <p class="text-xs text-[color:var(--color-border-strong)]">{{ user.email }}</p>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex justify-center">
+                  <StatusBadge :status="user.role as any" />
                 </div>
-              </div>
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex justify-center">
-                <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider border"
-                  :class="ROLE_COLORS[user.role]"
-                >{{ user.role }}</span>
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-right text-[color:var(--color-border-strong)]">{{ user.orders }}</td>
-            <td class="px-5 py-3.5 text-right font-medium text-[color:var(--color-obsidian)]">
-              {{ user.totalSpent > 0 ? `$${user.totalSpent.toLocaleString()}` : '—' }}
-            </td>
-            <td class="px-5 py-3.5 text-right text-xs text-[color:var(--color-border-strong)]">{{ user.joinedAt }}</td>
-            <td class="px-5 py-3.5">
-              <div class="flex justify-center">
-                <span
-                  class="inline-flex items-center gap-1 text-xs"
-                  :class="user.active ? 'text-emerald-600' : 'text-[color:var(--color-border-strong)]'"
-                >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="user.active ? 'bg-emerald-500' : 'bg-[color:var(--color-border)]'" />
-                  {{ user.active ? 'Active' : 'Inactive' }}
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              </td>
+              <td class="px-6 py-4 text-right text-[0.82rem]" style="color: var(--admin-text-secondary);">{{ user.orders }}</td>
+              <td class="px-6 py-4 text-right text-[0.82rem] font-bold" style="color: var(--admin-text-primary);">
+                {{ user.totalSpent > 0 ? `$${user.totalSpent.toLocaleString()}` : '—' }}
+              </td>
+              <td class="px-6 py-4 text-right text-[0.72rem]" style="color: var(--admin-text-secondary);">{{ user.joinedAt }}</td>
+              <td class="px-6 py-4">
+                <div class="flex justify-center">
+                  <StatusBadge :status="user.active ? 'activo' : 'inactivo'" />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>

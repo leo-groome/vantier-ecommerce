@@ -64,12 +64,24 @@ onMounted(() => {
 <template>
   <div class="space-y-6">
 
-    <!-- Page header -->
-    <div class="flex items-end justify-between">
-      <div>
-        <h1 class="text-[1.5rem] font-bold" style="color: var(--admin-text-primary);">Dashboard</h1>
-        <p class="text-[0.8rem] mt-0.5" style="color: var(--admin-text-secondary);">Vista general del negocio</p>
-      </div>
+
+
+    <!-- Quick actions -->
+    <div class="flex items-center justify-end gap-3 flex-wrap">
+      <RouterLink to="/admin/inventory">
+        <AdminButton variant="primary">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Agregar Producto
+        </AdminButton>
+      </RouterLink>
+      <RouterLink to="/admin/orders">
+        <AdminButton variant="ghost">Ver Órdenes</AdminButton>
+      </RouterLink>
+      <RouterLink to="/admin/discounts">
+        <AdminButton variant="ghost">Crear Descuento</AdminButton>
+      </RouterLink>
     </div>
 
     <!-- KPI skeleton -->
@@ -145,24 +157,6 @@ onMounted(() => {
           </tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Quick actions -->
-    <div class="flex items-center gap-3 flex-wrap">
-      <RouterLink to="/admin/inventory">
-        <AdminButton variant="primary">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Agregar Producto
-        </AdminButton>
-      </RouterLink>
-      <RouterLink to="/admin/orders">
-        <AdminButton variant="ghost">Ver Órdenes</AdminButton>
-      </RouterLink>
-      <RouterLink to="/admin/discounts">
-        <AdminButton variant="ghost">Crear Descuento</AdminButton>
-      </RouterLink>
     </div>
 
   </div>

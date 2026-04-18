@@ -5,6 +5,7 @@ export type AdminStatus =
   | 'pendiente' | 'procesando'
   | 'enviado' | 'entregado'
   | 'confirmada' | 'recibida' | 'en_transito'
+  | 'owner' | 'admin' | 'customer'
 </script>
 
 <script setup lang="ts">
@@ -18,6 +19,7 @@ const LABELS: Record<AdminStatus, string> = {
   pendiente: 'Pendiente', procesando: 'Procesando',
   enviado: 'Enviado', entregado: 'Entregado',
   confirmada: 'Confirmada', recibida: 'Recibida', en_transito: 'En tránsito',
+  owner: 'Owner', admin: 'Admin', customer: 'Customer',
 }
 
 const COLORS: Record<AdminStatus, { bg: string; text: string }> = {
@@ -34,6 +36,9 @@ const COLORS: Record<AdminStatus, { bg: string; text: string }> = {
   enviado:     { bg: 'var(--status-ship-bg)', text: 'var(--status-ship-text)' },
   recibida:    { bg: 'var(--status-ship-bg)', text: 'var(--status-ship-text)' },
   pendiente:   { bg: 'var(--status-pend-bg)', text: 'var(--status-pend-text)' },
+  owner:       { bg: 'rgba(201,168,76,0.15)', text: 'var(--admin-amber)' },
+  admin:       { bg: 'rgba(0,0,0,0.08)',      text: 'var(--admin-text-primary)' },
+  customer:    { bg: 'rgba(0,0,0,0.04)',      text: 'var(--admin-text-secondary)' },
 }
 </script>
 

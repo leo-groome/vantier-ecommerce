@@ -9,7 +9,12 @@ const router = useRouter()
 const auth   = useAuthStore()
 const inventory = useAdminInventoryStore()
 
-const sidebarCollapsed = ref(false)
+const sidebarCollapsed = ref(true) // Start collapsed by default for the hover effect
+const isHovered        = ref(false)
+const showUserMenu     = ref(false)
+
+const isCompact = computed(() => sidebarCollapsed.value && !isHovered.value)
+
 const userName = ref<string | null>(null)
 
 // Try to get display name from Neon Auth session
@@ -37,7 +42,7 @@ interface NavGroup { label: string; items: NavItem[] }
 
 const navGroups = computed<NavGroup[]>(() => [
   {
-    label: 'Principal',
+    label: '',
     items: [
       {
         to: '/admin/dashboard', label: 'Dashboard',
@@ -54,29 +59,19 @@ const navGroups = computed<NavGroup[]>(() => [
       },
       {
         to: '/admin/purchases', label: 'Compras',
-        icon: 'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z',
+        icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-5-1a1 1 0 001 1h1',
       },
-    ],
-  },
-  {
-    label: 'Finanzas',
-    items: [
       {
         to: '/admin/discounts', label: 'Descuentos',
-        icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
+        icon: 'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z',
       },
       {
         to: '/admin/finances', label: 'Financiero',
-        icon: 'M22 12h-4l-3 9L9 3l-3 9H2',
+        icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
       },
-    ],
-  },
-  {
-    label: 'Sistema',
-    items: [
       {
         to: '/admin/users', label: 'Usuarios',
-        icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
+        icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197',
       },
     ],
   },
@@ -138,25 +133,26 @@ async function clearAuth() {
 </script>
 
 <template>
-  <div class="min-h-screen flex" style="background: var(--admin-bg);">
+  <div class="h-screen flex overflow-hidden" style="background: var(--admin-bg);">
 
     <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
     <aside
-      class="flex flex-col flex-shrink-0 h-screen sticky top-0 transition-[width] duration-300 ease-out overflow-hidden"
-      :style="{ width: sidebarCollapsed ? '64px' : '240px', background: 'var(--admin-sidebar-bg)', boxShadow: '4px 0 24px rgba(0,0,0,0.18)' }"
+      @mouseenter="isHovered = true"
+      @mouseleave="isHovered = false"
+      class="flex flex-col flex-shrink-0 h-full relative transition-[width] duration-300 ease-out z-20"
+      :style="{ width: isCompact ? '64px' : '260px', background: '#ffffff', borderRight: '1px solid rgba(0,0,0,0.06)', boxShadow: '4px 0 24px rgba(0,0,0,0.02)' }"
     >
       <!-- Brand -->
       <div
-        class="flex items-center h-16 flex-shrink-0 gap-2 px-4 overflow-hidden"
-        style="border-bottom: 1px solid rgba(255,255,255,0.07);"
+        class="flex items-center h-[58px] flex-shrink-0 px-4 whitespace-nowrap relative"
+        style="border-bottom: 1px solid rgba(0,0,0,0.06);"
       >
-        <RouterLink to="/" class="flex-1 min-w-0 overflow-hidden" :class="sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 transition-opacity duration-200'">
-          <p class="font-bold uppercase tracking-[0.2em] text-white" style="font-size: 0.85rem; letter-spacing: 0.22em;">VANTIER</p>
-          <p class="uppercase tracking-widest font-medium" style="font-size: 0.52rem; color: var(--admin-amber); letter-spacing: 0.2em;">Panel Administrativo</p>
+        <RouterLink to="/" class="flex-1 flex items-center justify-center transition-opacity duration-300" :class="isCompact ? 'opacity-0 pointer-events-none' : 'opacity-100'">
+          <img src="/Logos y tipografia/LOGOTIPO NEGRO VANTIER.svg" alt="Vantier" class="h-4 object-contain" />
         </RouterLink>
         <button
-          class="flex-shrink-0 w-6 h-6 flex items-center justify-center transition-colors duration-150"
-          style="color: rgba(255,255,255,0.35);"
+          class="flex-shrink-0 w-6 h-6 flex items-center justify-center transition-colors duration-150 absolute right-4"
+          style="color: var(--admin-text-secondary);"
           @click="sidebarCollapsed = !sidebarCollapsed"
         >
           <svg class="w-4 h-4 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -170,86 +166,38 @@ async function clearAuth() {
         <template v-for="group in navGroups" :key="group.label">
           <!-- Group label -->
           <p
-            v-if="!sidebarCollapsed"
-            class="px-4 pt-4 pb-1.5 font-semibold uppercase select-none"
-            style="font-size: 0.55rem; color: rgba(255,255,255,0.22); letter-spacing: 0.2em;"
+            v-if="!isCompact"
+            class="px-4 pt-4 pb-1.5 font-bold uppercase select-none transition-opacity duration-300"
+            style="font-size: 0.55rem; color: var(--admin-text-secondary); opacity: 0.6; letter-spacing: 0.15em;"
           >{{ group.label }}</p>
 
           <RouterLink
             v-for="item in group.items"
             :key="item.to"
             :to="item.to"
-            class="flex items-center gap-2.5 mx-2 my-0.5 rounded-lg transition-all duration-150 relative overflow-hidden"
-            :class="sidebarCollapsed ? 'px-0 justify-center py-3' : 'px-3 py-2.5'"
+            class="flex items-center gap-4 mx-3 my-1.5 rounded-xl transition-all duration-150 relative overflow-hidden"
+            :class="isCompact ? 'px-0 justify-center py-4' : 'px-4 py-3 hover:bg-black/[0.02]'"
             :style="isActive(item.to)
-              ? { background: 'rgba(201,168,76,0.12)', color: 'var(--admin-amber)', borderLeft: sidebarCollapsed ? '3px solid transparent' : '3px solid var(--admin-amber)' }
-              : { color: 'rgba(255,255,255,0.45)', borderLeft: '3px solid transparent' }"
+              ? { background: 'rgba(201,168,76,0.08)', color: 'var(--admin-amber)', borderLeft: isCompact ? '4px solid transparent' : '4px solid var(--admin-amber)' }
+              : { color: 'var(--admin-text-secondary)', borderLeft: '4px solid transparent' }"
           >
-            <svg class="w-[17px] h-[17px] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <svg class="w-[19px] h-[19px] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path :d="item.icon" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span
-              v-if="!sidebarCollapsed"
-              class="text-[0.72rem] font-medium flex-1 whitespace-nowrap overflow-hidden"
+              v-if="!isCompact"
+              class="text-[0.78rem] font-semibold flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300"
+              :style="{ color: isActive(item.to) ? 'var(--admin-amber)' : 'var(--admin-text-primary)' }"
             >{{ item.label }}</span>
             <!-- Badge -->
             <span
-              v-if="!sidebarCollapsed && item.badge"
-              class="text-[0.58rem] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-              style="background: rgba(201,168,76,0.2); color: var(--admin-amber);"
+              v-if="!isCompact && item.badge"
+              class="text-[0.62rem] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+              style="background: rgba(201,168,76,0.15); color: var(--admin-amber);"
             >{{ item.badge }}</span>
           </RouterLink>
         </template>
       </nav>
-
-      <!-- User card -->
-      <div class="flex-shrink-0" style="border-top: 1px solid rgba(255,255,255,0.07);">
-        <template v-if="!sidebarCollapsed">
-          <div class="p-4 space-y-3">
-            <div class="flex items-center gap-2.5">
-              <div
-                class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold flex-shrink-0"
-                style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff; box-shadow: 0 2px 8px rgba(201,168,76,0.3);"
-              >{{ userInitial }}</div>
-              <div class="min-w-0 flex-1">
-                <p class="text-[0.78rem] font-semibold text-white truncate">{{ displayName }}</p>
-                <p class="text-[0.58rem] uppercase font-medium tracking-widest" style="color: var(--admin-amber);">{{ auth.role ?? '' }}</p>
-              </div>
-            </div>
-            <div class="flex gap-4 text-[0.65rem] uppercase tracking-wider pl-0.5">
-              <RouterLink
-                to="/"
-                class="transition-colors duration-150 flex items-center gap-1"
-                style="color: rgba(255,255,255,0.35);"
-              >
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round"/>
-                </svg>
-                Ver tienda
-              </RouterLink>
-              <button
-                class="transition-colors duration-150 flex items-center gap-1"
-                style="color: rgba(255,255,255,0.35);"
-                @click="clearAuth"
-              >
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </template>
-        <template v-else>
-          <div class="p-3 flex flex-col items-center gap-2">
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold cursor-pointer"
-              style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff;"
-              @click="clearAuth"
-            >{{ userInitial }}</div>
-          </div>
-        </template>
-      </div>
     </aside>
 
     <!-- ── MAIN AREA ───────────────────────────────────────────── -->
@@ -261,9 +209,10 @@ async function clearAuth() {
         style="box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);"
       >
         <div class="flex-1 min-w-0">
-          <p class="text-[1rem] font-bold truncate" style="color: var(--admin-text-primary); letter-spacing: -0.01em;">{{ pageTitle }}</p>
-          <p class="text-[0.68rem]" style="color: var(--admin-text-secondary);">{{ pageCrumb }}</p>
+          <p class="text-[1.1rem] font-bold truncate" style="font-family: var(--font-sans); color: var(--admin-text-primary); letter-spacing: -0.01em;">{{ pageTitle }}</p>
+          <p class="text-[0.68rem] font-medium uppercase tracking-widest opacity-60" style="font-family: var(--font-sans); color: var(--admin-text-secondary);">{{ pageCrumb }}</p>
         </div>
+
         <div class="flex items-center gap-1 flex-shrink-0">
           <!-- Search -->
           <button
@@ -274,6 +223,7 @@ async function clearAuth() {
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/>
             </svg>
           </button>
+
           <!-- Bell -->
           <button
             class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors duration-150"
@@ -283,11 +233,55 @@ async function clearAuth() {
               <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <!-- Avatar -->
-          <div
-            class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold ml-1 cursor-default"
-            style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff;"
-          >{{ userInitial }}</div>
+
+          <!-- Avatar with Dropdown -->
+          <div class="relative ml-1">
+            <button
+              @click="showUserMenu = !showUserMenu"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-[0.65rem] font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm"
+              style="background: linear-gradient(135deg, var(--admin-amber), #a07820); color: #fff;"
+            >
+              {{ userInitial }}
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div v-if="showUserMenu" class="fixed inset-0 z-40" @click="showUserMenu = false"></div>
+            <Transition name="fade-in-up">
+              <div
+                v-if="showUserMenu"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-black/5 py-2 z-50 transform origin-top-right overflow-hidden"
+                style="box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);"
+              >
+                <div class="px-4 py-2 border-b border-black/[0.03] mb-1">
+                  <p class="text-[0.75rem] font-bold truncate" style="color: var(--admin-text-primary);">{{ displayName }}</p>
+                  <p class="text-[0.55rem] uppercase font-bold tracking-widest" style="color: var(--admin-amber);">{{ auth.role ?? '' }}</p>
+                </div>
+                
+                <RouterLink
+                  to="/"
+                  class="flex items-center gap-2.5 px-4 py-2 text-[0.72rem] transition-colors hover:bg-black/[0.03]"
+                  style="color: var(--admin-text-primary);"
+                  @click="showUserMenu = false"
+                >
+                  <svg class="w-4 h-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                  </svg>
+                  Ver tienda
+                </RouterLink>
+
+                <button
+                  class="w-full flex items-center gap-2.5 px-4 py-2 text-[0.72rem] transition-colors hover:bg-red-50"
+                  style="color: #ef4444;"
+                  @click="clearAuth"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Cerrar sesión
+                </button>
+              </div>
+            </Transition>
+          </div>
         </div>
       </header>
 
@@ -298,3 +292,20 @@ async function clearAuth() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-in-up-enter-active {
+  transition: all 0.2s ease-out;
+}
+.fade-in-up-leave-active {
+  transition: all 0.15s ease-in;
+}
+.fade-in-up-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+}
+.fade-in-up-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+}
+</style>

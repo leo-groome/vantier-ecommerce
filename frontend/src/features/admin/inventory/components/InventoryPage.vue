@@ -144,26 +144,20 @@ onMounted(() => store.loadProducts())
 <template>
   <div class="space-y-5">
 
-    <!-- Header -->
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-[1.5rem] font-bold" style="color: var(--admin-text-primary);">Inventario</h1>
-        <p class="text-[0.8rem] mt-0.5" style="color: var(--admin-text-secondary);">Productos, variantes y control de stock</p>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <AdminButton variant="ghost" @click="showAddVariant = store.products[0]?.id ?? null">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Variante
-        </AdminButton>
-        <AdminButton variant="primary" @click="showAddProduct = true">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Nuevo Producto
-        </AdminButton>
-      </div>
+    <!-- Actions -->
+    <div class="flex justify-end gap-2">
+      <AdminButton variant="ghost" @click="showAddVariant = store.products[0]?.id ?? null">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Variante
+      </AdminButton>
+      <AdminButton variant="primary" @click="showAddProduct = true">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nuevo Producto
+      </AdminButton>
     </div>
 
     <!-- Error -->
