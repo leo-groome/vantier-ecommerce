@@ -63,7 +63,7 @@ defineExpose({ resolvedVariant })
         <ColorSwatch
           v-for="color in colors"
           :key="color"
-          :color="COLOR_BG[color] ?? color"
+          :color="COLOR_BG[color] ?? '#888888'"
           :label="color"
           :selected="color === selectedColor"
           @click="emit('update:selectedColor', color)"

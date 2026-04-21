@@ -170,7 +170,7 @@ async function onQuickAdd(e: Event) {
         <ColorSwatch
           v-for="v in uniqueColors"
           :key="v.color"
-          :color="v.color"
+          :color="COLOR_BG[v.color] ?? '#888888'"
           :label="v.color"
           :selected="selectedColor === v.color"
           @select="selectedColor = v.color"
