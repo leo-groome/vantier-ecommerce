@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useCheckoutStore } from '../store'
 import { useCartStore } from '@features/cart/store'
-import { createOrder } from '../api'
+import { createPaymentIntent } from '../api'
 import type { ShippingRate } from '../types'
 import CheckoutStepper from './CheckoutStepper.vue'
 import GuestEmailInput from './GuestEmailInput.vue'
@@ -14,13 +15,14 @@ import OrderSummaryPanel from './OrderSummaryPanel.vue'
 import SeoHead from '@shared/components/SeoHead.vue'
 import DiscountCodeInput from '@features/cart/components/DiscountCodeInput.vue'
 
+const router = useRouter()
 const checkout = useCheckoutStore()
 const cart = useCartStore()
 
 const guestEmail = ref('')
 const addressData = ref<AddressData | null>(null)
-const submitting = ref(false)
-const paymentError = ref('')
+const preparingPayment = ref(false)
+const prepareError = ref('')
 
 function onAddressSubmit(data: AddressData) {
   addressData.value = data
@@ -31,18 +33,14 @@ function onShippingSelect(rate: ShippingRate) {
   checkout.shippingRate = rate
 }
 
-function onShippingContinue() {
-  if (checkout.shippingRate) checkout.step = 'payment'
-}
-
-async function handlePaymentSubmit() {
-  if (submitting.value || !addressData.value) return
-  submitting.value = true
-  paymentError.value = ''
+async function onShippingContinue() {
+  if (!checkout.shippingRate || !addressData.value) return
+  preparingPayment.value = true
+  prepareError.value = ''
 
   const addr = addressData.value
   try {
-    const result = await createOrder({
+    const result = await createPaymentIntent({
       customer_email: guestEmail.value,
       customer_name: `${addr.firstName} ${addr.lastName}`,
       items: cart.items.map(i => ({ variant_id: i.variantId, qty: i.quantity })),
@@ -57,13 +55,22 @@ async function handlePaymentSubmit() {
         phone: addr.phone || undefined,
       },
       discount_code: checkout.discountCode || null,
+      selected_carrier_name: checkout.shippingRate.carrier_name,
+      shipping_usd: checkout.shippingRate.price_usd,
     })
-    window.location.href = result.checkout_url
+
+    checkout.clientSecret = result.client_secret
+    checkout.orderId = result.order_id
+    checkout.step = 'payment'
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
-    paymentError.value = msg
-    submitting.value = false
+    prepareError.value = err instanceof Error ? err.message : 'Could not prepare payment. Try again.'
+  } finally {
+    preparingPayment.value = false
   }
+}
+
+function onPaymentSuccess() {
+  router.push(`/checkout/success?order_id=${checkout.orderId}`)
 }
 </script>
 
@@ -98,14 +105,22 @@ async function handlePaymentSubmit() {
           </h2>
           <ShippingMethodSelect
             :zip="addressData?.zip ?? ''"
+            :item-count="cart.totalItems"
             @select="onShippingSelect"
           />
+          <p v-if="prepareError" class="mt-3 text-[length:var(--text-micro)] text-red-600">
+            {{ prepareError }}
+          </p>
           <button
-            class="mt-6 w-full py-4 bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-[length:var(--text-small)] tracking-[var(--tracking-label)] uppercase hover:opacity-80 disabled:opacity-40 transition-opacity duration-[var(--duration-normal)]"
-            :disabled="!checkout.shippingRate"
+            class="mt-6 w-full py-4 bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-[length:var(--text-small)] tracking-[var(--tracking-label)] uppercase hover:opacity-80 disabled:opacity-40 transition-opacity duration-[var(--duration-normal)] flex items-center justify-center gap-2"
+            :disabled="!checkout.shippingRate || preparingPayment"
             @click="onShippingContinue"
           >
-            Continue to Payment
+            <span
+              v-if="preparingPayment"
+              class="w-4 h-4 border-2 border-[color:var(--color-ivory)] border-t-transparent rounded-full animate-spin"
+            />
+            <span>{{ preparingPayment ? 'Preparing…' : 'Continue to Payment' }}</span>
           </button>
         </template>
 
@@ -118,9 +133,10 @@ async function handlePaymentSubmit() {
             <DiscountCodeInput />
           </div>
           <StripePaymentForm
-            :loading="submitting"
-            :error="paymentError"
-            @submit="handlePaymentSubmit"
+            v-if="checkout.clientSecret && checkout.orderId"
+            :client-secret="checkout.clientSecret"
+            :order-id="checkout.orderId"
+            @success="onPaymentSuccess"
           />
         </template>
       </div>

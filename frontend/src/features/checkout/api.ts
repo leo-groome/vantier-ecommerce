@@ -23,6 +23,8 @@ export interface OrderCreatePayload {
   items: OrderItemPayload[]
   shipping_address: ShippingAddressPayload
   discount_code?: string | null
+  selected_carrier_name: string
+  shipping_usd: number
 }
 
 export interface CheckoutResponse {
@@ -30,8 +32,19 @@ export interface CheckoutResponse {
   checkout_url: string
 }
 
-export async function fetchShippingRates(addressId: string): Promise<ShippingRate[]> {
-  const { data } = await apiClient.get<ShippingRate[]>('/shipping/rates', { params: { addressId } })
+export interface PaymentIntentResponse {
+  order_id: string
+  client_secret: string
+  amount_cents: number
+}
+
+export async function fetchShippingRates(zip: string, item_count: number): Promise<ShippingRate[]> {
+  const { data } = await apiClient.get<ShippingRate[]>('/shipping/rates', { params: { zip, item_count } })
+  return data
+}
+
+export async function createPaymentIntent(payload: OrderCreatePayload): Promise<PaymentIntentResponse> {
+  const { data } = await apiClient.post<PaymentIntentResponse>('/orders/create-payment-intent', payload)
   return data
 }
 

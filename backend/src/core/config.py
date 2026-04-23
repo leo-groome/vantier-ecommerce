@@ -33,8 +33,7 @@ class Settings(BaseSettings):
     resend_from_email: str = "support@vantierluxuryla.com"
     resend_support_email: str = "support@vantierluxuryla.com"
 
-    # Storage / Cloudflare R2
-    storage_url: str
+    # Cloudflare R2 (storage + public delivery via *.r2.dev)
     cloudflare_account_id: str = ""
     r2_bucket: str = ""
     r2_access_key_id: str = ""

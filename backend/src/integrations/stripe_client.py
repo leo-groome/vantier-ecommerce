@@ -68,6 +68,50 @@ async def create_checkout_session(
     return session.url, session.id
 
 
+async def create_payment_intent(
+    amount_cents: int,
+    currency: str,
+    order_id: str,
+    customer_email: str | None = None,
+) -> tuple[str, str]:
+    """Create a Stripe PaymentIntent for embedded checkout.
+
+    Returns the client_secret (used by Stripe.js Payment Element on the frontend)
+    and the payment_intent_id (stored on the order for webhook matching).
+
+    Args:
+        amount_cents: Total charge amount in the smallest currency unit (e.g. cents).
+        currency: ISO 4217 currency code (e.g. "usd").
+        order_id: Internal order UUID stored in metadata for webhook reconciliation.
+        customer_email: Optional email to attach to the PaymentIntent.
+
+    Returns:
+        Tuple of (client_secret, payment_intent_id).
+
+    Raises:
+        AppException: If Stripe credentials are missing or the API call fails.
+    """
+    _get_stripe()
+
+    kwargs: dict = {
+        "amount": amount_cents,
+        "currency": currency,
+        "metadata": {"order_id": order_id},
+        "automatic_payment_methods": {"enabled": True},
+    }
+    if customer_email:
+        kwargs["receipt_email"] = customer_email
+
+    try:
+        intent = await stripe.PaymentIntent.create_async(**kwargs)
+    except stripe.StripeError as exc:
+        logger.error("Stripe API error creating PaymentIntent for order %s: %s", order_id, exc)
+        raise AppException(f"Payment provider error: {exc.user_message}", status_code=502) from exc
+
+    logger.info("Stripe PaymentIntent created: %s for order %s", intent.id, order_id)
+    return intent.client_secret, intent.id
+
+
 def verify_webhook_signature(payload: bytes, sig_header: str) -> bool:
     """Verify Stripe webhook signature (SDK v15 compatible).
 

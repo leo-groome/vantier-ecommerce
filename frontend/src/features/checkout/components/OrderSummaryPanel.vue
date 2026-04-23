@@ -6,7 +6,7 @@ import type { ShippingRate } from '../types'
 const props = defineProps<{ shippingRate?: ShippingRate | null }>()
 
 const cart = useCartStore()
-const total = computed(() => cart.subtotal + (props.shippingRate?.priceUSD ?? 0))
+const total = computed(() => cart.subtotal + (props.shippingRate?.price_usd ?? 0))
 
 function formatPrice(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
@@ -44,8 +44,8 @@ function formatPrice(n: number) {
         <span>Shipping</span>
         <span>
           <span v-if="!shippingRate">—</span>
-          <span v-else-if="cart.freeShipping || shippingRate.priceUSD === 0">Free</span>
-          <span v-else>{{ formatPrice(shippingRate.priceUSD) }}</span>
+          <span v-else-if="cart.freeShipping || shippingRate.price_usd === 0">Free</span>
+          <span v-else>{{ formatPrice(shippingRate.price_usd) }}</span>
         </span>
       </div>
       <div class="flex justify-between text-[length:var(--text-small)] font-semibold text-[color:var(--color-on-surface)] pt-2 border-t border-[color:var(--color-border)]">

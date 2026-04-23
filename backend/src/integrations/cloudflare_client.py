@@ -1,4 +1,13 @@
-"""Cloudflare R2 storage and Images transform integration."""
+"""Cloudflare R2 storage integration for image upload and delivery.
+
+Images are stored in a Cloudflare R2 bucket and served via the public
+*.r2.dev URL. This works for development and MVP without a custom domain.
+
+Post-MVP: once DNS is migrated to Cloudflare, add a custom domain to the
+R2 bucket (CF Dashboard → R2 → Bucket → Settings → Custom Domain) and
+update R2_PUBLIC_URL — image transformations via /cdn-cgi/image/ will
+then work automatically.
+"""
 
 from __future__ import annotations
 
@@ -19,23 +28,17 @@ logger = logging.getLogger(__name__)
 
 
 def _is_configured() -> bool:
-    settings = get_settings()
-    return bool(
-        settings.cloudflare_account_id
-        and settings.r2_access_key_id
-        and settings.r2_secret_access_key
-        and settings.r2_bucket
-    )
+    s = get_settings()
+    return bool(s.r2_access_key_id and s.r2_secret_access_key and s.r2_bucket and s.cloudflare_account_id)
 
 
 def _get_s3_client():
-    """Return a configured boto3 S3 client pointing at Cloudflare R2."""
-    settings = get_settings()
+    s = get_settings()
     return boto3.client(
         "s3",
-        endpoint_url=f"https://{settings.cloudflare_account_id}.r2.cloudflarestorage.com",
-        aws_access_key_id=settings.r2_access_key_id,
-        aws_secret_access_key=settings.r2_secret_access_key,
+        endpoint_url=f"https://{s.cloudflare_account_id}.r2.cloudflarestorage.com",
+        aws_access_key_id=s.r2_access_key_id,
+        aws_secret_access_key=s.r2_secret_access_key,
         config=Config(signature_version="s3v4"),
         region_name="auto",
     )
@@ -48,16 +51,13 @@ async def upload_image(
 ) -> str:
     """Upload an image to Cloudflare R2 and return its public URL.
 
-    Generates a unique filename to prevent collisions. Falls back to a
-    placeholder URL when R2 credentials are not configured (development mode).
-
     Args:
         file_bytes: Raw image bytes.
         original_filename: Original filename (used to preserve the extension).
         folder: R2 path prefix (e.g. "products", "variants").
 
     Returns:
-        Public URL of the uploaded image.
+        Public URL of the uploaded image (*.r2.dev/...).
 
     Raises:
         AppException: If R2 credentials are configured but the upload fails.
@@ -111,39 +111,3 @@ async def delete_image(object_key: str) -> None:
         await asyncio.to_thread(_delete)
     except (BotoCoreError, ClientError) as exc:
         logger.warning("R2 delete failed for %s: %s", object_key, exc)
-
-
-def get_transform_url(image_url: str, width: int | None = None, format: str = "webp") -> str:
-    """Return a Cloudflare Image-transformed URL for resizing and format conversion.
-
-    Cloudflare Images transformation is applied via the `/cdn-cgi/image/` path prefix
-    on the R2 public domain. Requires "Polish" or "Image Resizing" to be enabled
-    on the Cloudflare zone for the R2 custom domain.
-
-    Args:
-        image_url: The original R2 public URL.
-        width: Target pixel width. If None, only format conversion is applied.
-        format: Target image format (default: "webp").
-
-    Returns:
-        Transformed image URL string.
-
-    Example:
-        get_transform_url("https://pub-xxx.r2.dev/products/img.jpg", width=400)
-        → "https://pub-xxx.r2.dev/cdn-cgi/image/width=400,format=webp/products/img.jpg"
-    """
-    settings = get_settings()
-    base = settings.r2_public_url.rstrip("/")
-
-    if not image_url.startswith(base):
-        # Not an R2 URL — return as-is
-        return image_url
-
-    # Extract the object path from the URL
-    object_path = image_url[len(base):].lstrip("/")
-
-    params = f"format={format}"
-    if width:
-        params = f"width={width},{params}"
-
-    return f"{base}/cdn-cgi/image/{params}/{object_path}"

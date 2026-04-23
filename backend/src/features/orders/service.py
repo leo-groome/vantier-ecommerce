@@ -83,15 +83,14 @@ async def create_order(
     total_qty = sum(item.qty for item in data.items)
 
     # ── 4. Shipping ───────────────────────────────────────────────────────────
+    # Use the rate selected by the user on the shipping step (already fetched
+    # from envia.com). Free shipping override applies at 5+ items.
     if total_qty >= 5:
         is_free_shipping = True
         shipping_usd = Decimal("0.00")
     else:
         is_free_shipping = False
-        shipping_usd = await envia_client.get_shipping_rates(
-            origin_zip="20000",
-            destination_zip=data.shipping_address.zip,
-        )
+        shipping_usd = data.shipping_usd
 
     # ── 5. Discount ───────────────────────────────────────────────────────────
     discount_usd = Decimal("0.00")
@@ -176,34 +175,181 @@ async def create_order(
     return order, checkout_url
 
 
-# ── Webhook ────────────────────────────────────────────────────────────────────
+async def create_order_with_payment_intent(
+    db: AsyncSession,
+    user_id: str | None,
+    data: OrderCreate,
+) -> tuple[Order, str, int]:
+    """Create an order and return (order, client_secret, amount_cents) for embedded checkout.
 
-async def confirm_payment(db: AsyncSession, checkout_session_id: str) -> Order | None:
-    """Process a confirmed Stripe payment: decrement stock and mark order paid.
+    Identical validation flow to create_order(), but creates a Stripe PaymentIntent
+    instead of a Checkout Session. The client_secret is passed to Stripe.js
+    on the frontend to mount the Payment Element.
 
-    Called by the Stripe webhook when checkout.session.completed fires.
+    Args:
+        db: Async database session.
+        user_id: Neon Auth user ID; None for guest checkout.
+        data: Validated order creation data.
+
+    Returns:
+        Tuple of (Order, client_secret, amount_cents).
+    """
+    # ── 1. Load and validate variants ─────────────────────────────────────────
+    variant_ids = [item.variant_id for item in data.items]
+    result = await db.execute(
+        select(ProductVariant).where(
+            ProductVariant.id.in_(variant_ids),
+            ProductVariant.is_active.is_(True),
+        )
+    )
+    variants: dict[uuid.UUID, ProductVariant] = {v.id: v for v in result.scalars().all()}
+
+    for item in data.items:
+        if item.variant_id not in variants:
+            raise NotFoundException(f"Variant {item.variant_id} not found or inactive")
+
+    # ── 2. Validate stock ─────────────────────────────────────────────────────
+    for item in data.items:
+        variant = variants[item.variant_id]
+        if int(variant.stock_qty) < item.qty:
+            raise StockInsufficientException(
+                f"Insufficient stock for variant {item.variant_id}: "
+                f"requested {item.qty}, available {int(variant.stock_qty)}"
+            )
+
+    # ── 3. Compute subtotal ───────────────────────────────────────────────────
+    subtotal_usd: Decimal = sum(
+        variants[item.variant_id].price_usd * item.qty for item in data.items
+    )
+    total_qty = sum(item.qty for item in data.items)
+
+    # ── 4. Shipping ───────────────────────────────────────────────────────────
+    if total_qty >= 5:
+        is_free_shipping = True
+        shipping_usd = Decimal("0.00")
+    else:
+        is_free_shipping = False
+        shipping_usd = data.shipping_usd
+
+    # ── 5. Discount ───────────────────────────────────────────────────────────
+    discount_usd = Decimal("0.00")
+    discount_code_id: uuid.UUID | None = None
+
+    if data.discount_code:
+        from src.features.discounts import service as discounts_service
+        from src.features.discounts.models import DiscountCode
+        from src.features.discounts.schemas import DiscountValidateRequest
+
+        code_result = await db.execute(
+            select(DiscountCode).where(
+                func.upper(DiscountCode.code) == data.discount_code.upper(),
+                DiscountCode.is_active.is_(True),
+            )
+        )
+        code_obj = code_result.scalar_one_or_none()
+        if code_obj is None:
+            raise NotFoundException(f"Discount code '{data.discount_code}' not found or inactive")
+        discount_code_id = code_obj.id
+
+        validate_resp = await discounts_service.validate_discount_code(
+            db,
+            DiscountValidateRequest(
+                code=data.discount_code,
+                order_subtotal_usd=subtotal_usd,
+            ),
+        )
+        discount_usd = validate_resp.discount_amount_usd
+
+    # ── 6. Total ──────────────────────────────────────────────────────────────
+    total_usd = max(subtotal_usd + shipping_usd - discount_usd, Decimal("0.00"))
+    amount_cents = int(total_usd * 100)
+
+    # ── 7. Create Order record ────────────────────────────────────────────────
+    order = Order(
+        neon_auth_user_id=user_id,
+        customer_email=str(data.customer_email),
+        customer_name=data.customer_name,
+        status="pending",
+        payment_status="pending",
+        subtotal_usd=subtotal_usd,
+        shipping_usd=shipping_usd,
+        discount_usd=discount_usd,
+        total_usd=total_usd,
+        is_free_shipping=is_free_shipping,
+        shipping_address=data.shipping_address.model_dump(),
+        discount_code_id=discount_code_id,
+    )
+    db.add(order)
+    await db.flush()
+
+    # ── 8. Create OrderItems ──────────────────────────────────────────────────
+    for item in data.items:
+        variant = variants[item.variant_id]
+        db.add(OrderItem(
+            order_id=order.id,
+            variant_id=item.variant_id,
+            qty=item.qty,
+            unit_price_usd=variant.price_usd,
+        ))
+
+    # ── 9. Create Stripe PaymentIntent ────────────────────────────────────────
+    client_secret, payment_intent_id = await stripe_client.create_payment_intent(
+        amount_cents=amount_cents,
+        currency="usd",
+        order_id=str(order.id),
+        customer_email=str(data.customer_email),
+    )
+    order.stripe_payment_intent_id = payment_intent_id
+
+    await db.flush()
+    return order, client_secret, amount_cents
+
+
+async def confirm_payment_by_intent(db: AsyncSession, payment_intent_id: str) -> Order | None:
+    """Process a confirmed PaymentIntent: decrement stock and mark order paid.
+
+    Called by the Stripe webhook when payment_intent.succeeded fires.
     Idempotent: if the order is already paid, returns it unchanged.
 
     Args:
         db: Async database session.
-        checkout_session_id: Stripe Checkout Session ID from the webhook event.
+        payment_intent_id: Stripe PaymentIntent ID from the webhook event.
 
     Returns:
-        Updated Order, or None if the session_id is unknown (unrelated event).
+        Updated Order, or None if not found.
     """
     result = await db.execute(
         select(Order)
         .options(joinedload(Order.items))
-        .where(Order.stripe_checkout_session_id == checkout_session_id)
+        .where(Order.stripe_payment_intent_id == payment_intent_id)
     )
     order = result.unique().scalar_one_or_none()
     if order is None:
+        logger.warning("PaymentIntent %s: no matching order found", payment_intent_id)
         return None
 
-    # Idempotency: already processed
     if order.payment_status == "paid":
-        return order
+        return order  # Idempotent
 
+    # Reuse the same stock decrement + email logic
+    return await _finalize_paid_order(db, order)
+
+
+# ── Webhook ────────────────────────────────────────────────────────────────────
+
+async def _finalize_paid_order(db: AsyncSession, order: Order) -> Order:
+    """Shared post-payment logic: decrement stock, update status, send emails.
+
+    Called by both confirm_payment (Checkout Session) and confirm_payment_by_intent
+    (PaymentIntent). Assumes the order has been loaded with items eagerly.
+
+    Args:
+        db: Async database session.
+        order: Order ORM instance with items loaded (payment_status != "paid").
+
+    Returns:
+        Updated Order.
+    """
     # ── Decrement stock atomically (FOR UPDATE) ───────────────────────────────
     variant_ids = [item.variant_id for item in order.items]
     variants_result = await db.execute(
@@ -225,7 +371,6 @@ async def confirm_payment(db: AsyncSession, checkout_session_id: str) -> Order |
             continue
         new_stock = int(variant.stock_qty) - int(item.qty)
         if new_stock < 0:
-            # Payment is already confirmed — cannot fail here; flag for manual review
             logger.error(
                 "Stock underflow for variant %s (order %s): current=%s, requested=%s. "
                 "Clamping to 0 — manual review required.",
@@ -241,7 +386,6 @@ async def confirm_payment(db: AsyncSession, checkout_session_id: str) -> Order |
         try:
             await discounts_service.increment_usage_count(db, order.discount_code_id)
         except ConflictException:
-            # Usage limit race: another order beat us. Payment is confirmed regardless.
             logger.warning(
                 "Discount code usage limit already reached for order %s — skipping increment",
                 order.id,
@@ -252,31 +396,70 @@ async def confirm_payment(db: AsyncSession, checkout_session_id: str) -> Order |
     order.status = "processing"
     await db.flush()
 
-    # ── Transactional emails (fire-and-forget; never raise) ───────────────────
+    # ── Transactional emails (fire-and-forget) ───────────────────────────────
     items_summary = [
-        {
-            "qty": int(item.qty),
-            "name": str(item.variant_id),
-            "price": str(item.unit_price_usd),
-        }
+        {"qty": int(item.qty), "name": str(item.variant_id), "price": str(item.unit_price_usd)}
         for item in order.items
     ]
     await resend_client.send_order_confirmed(
-        str(order.id),
-        order.customer_email,
-        items_summary,
-        str(order.total_usd),
-        str(order.shipping_usd),
+        str(order.id), order.customer_email, items_summary,
+        str(order.total_usd), str(order.shipping_usd),
     )
     await resend_client.send_new_order_alert(
         str(order.id),
         f"Customer: {order.customer_email}\nTotal: ${order.total_usd}\nItems: {len(order.items)}",
     )
-
     return order
 
 
+async def confirm_payment(db: AsyncSession, checkout_session_id: str) -> Order | None:
+    """Process a confirmed Stripe Checkout Session: decrement stock and mark order paid.
+
+    Called by the Stripe webhook when checkout.session.completed fires.
+    Idempotent: if the order is already paid, returns it unchanged.
+
+    Args:
+        db: Async database session.
+        checkout_session_id: Stripe Checkout Session ID from the webhook event.
+
+    Returns:
+        Updated Order, or None if the session_id is unknown.
+    """
+    result = await db.execute(
+        select(Order)
+        .options(joinedload(Order.items))
+        .where(Order.stripe_checkout_session_id == checkout_session_id)
+    )
+    order = result.unique().scalar_one_or_none()
+    if order is None:
+        return None
+    if order.payment_status == "paid":
+        return order
+    return await _finalize_paid_order(db, order)
+
+
 # ── Read ───────────────────────────────────────────────────────────────────────
+
+async def get_order_confirmation(db: AsyncSession, order_id: uuid.UUID) -> Order | None:
+    """Fetch a paid order for the confirmation screen. Public — no auth required.
+
+    Only returns the order if payment_status == "paid" to prevent enumeration
+    of unpaid/pending orders by UUID guessing.
+
+    Args:
+        db: Async database session.
+        order_id: Order UUID (hard to guess — UUID v4).
+
+    Returns:
+        Order with items, or None if not found / not yet paid.
+    """
+    result = await db.execute(
+        select(Order)
+        .options(joinedload(Order.items))
+        .where(Order.id == order_id, Order.payment_status == "paid")
+    )
+    return result.unique().scalar_one_or_none()
+
 
 async def get_order(db: AsyncSession, order_id: uuid.UUID) -> Order:
     """Fetch a single order with items eagerly loaded.

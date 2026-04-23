@@ -1,11 +1,11 @@
 export type CheckoutStep = 'address' | 'shipping' | 'payment' | 'confirmation'
 
 export interface ShippingRate {
-  carrierId: string
-  carrierName: string
+  carrier_id: string
+  carrier_name: string
   service: string
-  priceUSD: number
-  estimatedDays: number
+  price_usd: number
+  estimated_days: number
 }
 
 export interface DiscountValidationInput {

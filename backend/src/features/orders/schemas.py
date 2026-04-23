@@ -40,6 +40,10 @@ class OrderCreate(BaseModel):
     items: list[OrderItemCreate] = Field(..., min_length=1)
     shipping_address: ShippingAddressCreate
     discount_code: str | None = None  # raw code string; resolved and validated in service
+    # Shipping rate selected by the user on the checkout shipping step.
+    # Sent by the frontend after calling GET /shipping/rates.
+    selected_carrier_name: str = Field(default="Standard Shipping")
+    shipping_usd: Decimal = Field(default=Decimal("9.99"), ge=0)
 
 
 # ── Output schemas ─────────────────────────────────────────────────────────────
@@ -81,6 +85,14 @@ class CheckoutResponse(BaseModel):
 
     order_id: uuid.UUID
     checkout_url: str  # Stripe-hosted URL; stub returns a mock URL
+
+
+class PaymentIntentResponse(BaseModel):
+    """Response after creating an order with an embedded PaymentIntent."""
+
+    order_id: uuid.UUID
+    client_secret: str   # Passed to Stripe.js Payment Element on the frontend
+    amount_cents: int
 
 
 class OrderStatusUpdate(BaseModel):

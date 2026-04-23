@@ -37,25 +37,47 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {get_settings().envia_api_key}"}
 
 
-async def get_shipping_rates(origin_zip: str, destination_zip: str) -> Decimal:
-    """Return the lowest available shipping rate via envia.com.
+def _stub_rates() -> list[dict]:
+    """Return mock shipping options when envia credentials are not configured."""
+    return [
+        {
+            "carrier_id": "fedex-economy",
+            "carrier_name": "FedEx",
+            "service": "Economy",
+            "price_usd": 9.99,
+            "estimated_days": 5,
+        },
+        {
+            "carrier_id": "fedex-express",
+            "carrier_name": "FedEx",
+            "service": "Express",
+            "price_usd": 19.99,
+            "estimated_days": 2,
+        },
+    ]
 
+
+async def get_shipping_rates(origin_zip: str, destination_zip: str) -> list[dict]:
+    """Return all available shipping options via envia.com.
+
+    Each option includes carrier, service, price in USD and estimated delivery days.
     Uses the standard Vantier package dimensions (33×26×10 cm, 0.5 kg).
-    Falls back to $9.99 stub rate when envia credentials are not configured.
+    Falls back to mock options when envia credentials are not configured.
 
     Args:
-        origin_zip: Origin postal code (defaults to Aguascalientes warehouse).
+        origin_zip: Origin postal code (Aguascalientes warehouse).
         destination_zip: Customer destination postal code.
 
     Returns:
-        Lowest available rate in USD as Decimal.
+        List of rate dicts with keys: carrier_id, carrier_name, service,
+        price_usd (float), estimated_days (int).
 
     Raises:
         AppException: If rate lookup fails with a configured key.
     """
     if not _is_configured():
-        logger.info("STUB: Shipping rate %s -> %s = $9.99", origin_zip, destination_zip)
-        return Decimal("9.99")
+        logger.info("STUB: Shipping rates %s -> %s (mock)", origin_zip, destination_zip)
+        return _stub_rates()
 
     settings = get_settings()
     payload = {
@@ -86,18 +108,43 @@ async def get_shipping_rates(origin_zip: str, destination_zip: str) -> Decimal:
             logger.error("envia.com network error: %s", exc)
             raise AppException("Shipping provider unreachable", status_code=502) from exc
 
-    data = resp.json()
-    rates = data.get("data", [])
-    if not rates:
+    raw_rates: list[dict] = resp.json().get("data", [])
+    if not raw_rates:
         logger.warning("envia.com returned no rates for %s -> %s", origin_zip, destination_zip)
-        return Decimal("9.99")
+        return _stub_rates()
 
-    # Pick the cheapest option; prices returned by envia.com are in the carrier's currency.
-    # For international (MX → US) carriers (FedEx/DHL), rates are quoted in USD.
-    cheapest = min(rates, key=lambda r: float(r.get("totalPrice", 0)))
-    price = Decimal(str(cheapest.get("totalPrice", "9.99")))
-    logger.info("envia.com cheapest rate: %s %s via %s", price, cheapest.get("currency"), cheapest.get("carrier"))
-    return price
+    # Normalize envia response to internal format. International (MX→US) rates
+    # from FedEx/DHL are quoted in USD.
+    result: list[dict] = []
+    for r in raw_rates:
+        carrier = str(r.get("carrier", "")).lower()
+        service = str(r.get("service", r.get("serviceName", "Standard")))
+        carrier_id = f"{carrier}-{service.lower().replace(' ', '-')}"
+        result.append({
+            "carrier_id": carrier_id,
+            "carrier_name": str(r.get("carrier", carrier)).upper(),
+            "service": service,
+            "price_usd": float(r.get("totalPrice", 9.99)),
+            "estimated_days": int(r.get("days", r.get("deliveryDays", 5))),
+        })
+
+    result.sort(key=lambda x: x["price_usd"])
+    logger.info("envia.com returned %d rates for %s -> %s", len(result), origin_zip, destination_zip)
+    return result
+
+
+async def get_cheapest_rate(origin_zip: str, destination_zip: str) -> Decimal:
+    """Return only the cheapest rate as a Decimal (used internally by order service).
+
+    Args:
+        origin_zip: Origin postal code.
+        destination_zip: Customer destination postal code.
+
+    Returns:
+        Cheapest rate in USD as Decimal.
+    """
+    rates = await get_shipping_rates(origin_zip, destination_zip)
+    return Decimal(str(rates[0]["price_usd"])) if rates else Decimal("9.99")
 
 
 async def create_shipment(order_id: str, address_data: dict) -> tuple[str, str]:

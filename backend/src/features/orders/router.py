@@ -15,6 +15,7 @@ from src.features.orders.schemas import (
     OrderCreate,
     OrderResponse,
     OrderStatusUpdate,
+    PaymentIntentResponse,
 )
 from src.integrations import stripe_client
 
@@ -38,6 +39,41 @@ async def checkout(
     return CheckoutResponse(order_id=order.id, checkout_url=checkout_url)
 
 
+@router.get("/confirmation/{order_id}", response_model=OrderResponse)
+async def get_order_confirmation(
+    order_id: uuid.UUID,
+    db: DBSession,
+) -> OrderResponse:
+    """Fetch a confirmed (paid) order for the post-payment success screen.
+
+    Public endpoint — secured by UUID opacity. Only returns paid orders.
+    """
+    order = await service.get_order_confirmation(db, order_id)
+    if order is None:
+        raise AppException("Order not found or payment not confirmed yet", status_code=404, error_code="NOT_FOUND")
+    return OrderResponse.model_validate(order)
+
+
+@router.post("/create-payment-intent", response_model=PaymentIntentResponse, status_code=201)
+async def create_payment_intent(
+    data: OrderCreate,
+    db: DBSession,
+) -> PaymentIntentResponse:
+    """Create an order and return a Stripe PaymentIntent client_secret for embedded checkout.
+
+    Public endpoint — no authentication required (supports guest checkout).
+    Stock is validated but NOT decremented here; that happens on payment confirmation.
+    """
+    order, client_secret, amount_cents = await service.create_order_with_payment_intent(
+        db, user_id=None, data=data
+    )
+    return PaymentIntentResponse(
+        order_id=order.id,
+        client_secret=client_secret,
+        amount_cents=amount_cents,
+    )
+
+
 @router.post("/webhook/stripe", status_code=200)
 async def stripe_webhook(request: Request, db: DBSession) -> dict:
     """Stripe webhook receiver for payment confirmation events.
@@ -57,10 +93,18 @@ async def stripe_webhook(request: Request, db: DBSession) -> dict:
     except json.JSONDecodeError as exc:
         raise AppException("Invalid webhook payload", status_code=400, error_code="BAD_REQUEST") from exc
 
-    if event.get("type") == "checkout.session.completed":
-        session_id = event.get("data", {}).get("object", {}).get("id", "")
+    event_type = event.get("type", "")
+    obj = event.get("data", {}).get("object", {})
+
+    if event_type == "checkout.session.completed":
+        session_id = obj.get("id", "")
         if session_id:
             await service.confirm_payment(db, session_id)
+
+    elif event_type == "payment_intent.succeeded":
+        payment_intent_id = obj.get("id", "")
+        if payment_intent_id:
+            await service.confirm_payment_by_intent(db, payment_intent_id)
 
     return {"ok": True}
 

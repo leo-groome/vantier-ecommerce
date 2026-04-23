@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { fetchShippingRates } from '../api'
 import type { ShippingRate } from '../types'
 
-const props = defineProps<{ zip: string }>()
+const props = defineProps<{ zip: string; itemCount: number }>()
 const emit = defineEmits<{ (e: 'select', rate: ShippingRate): void }>()
 
 const rates = ref<ShippingRate[]>([])
@@ -18,16 +19,9 @@ async function fetchRates() {
   loading.value = true
   error.value = false
   try {
-    // TODO: wire to real envia.com rate API — mock for now
-    await new Promise((r) => setTimeout(r, 800))
-    rates.value = [
-      { carrierId: 'fedex-std', carrierName: 'FedEx', service: 'Ground', priceUSD: 0, estimatedDays: 5 },
-      { carrierId: 'fedex-exp', carrierName: 'FedEx', service: 'Express', priceUSD: 12.99, estimatedDays: 2 },
-      { carrierId: 'dhl-std',   carrierName: 'DHL',   service: 'Standard', priceUSD: 8.99, estimatedDays: 4 },
-    ]
-    // Auto-select first
+    rates.value = await fetchShippingRates(props.zip, props.itemCount)
     if (rates.value.length > 0) {
-      selected.value = rates.value[0].carrierId
+      selected.value = rates.value[0].carrier_id
       emit('select', rates.value[0])
     }
   } catch {
@@ -38,7 +32,7 @@ async function fetchRates() {
 }
 
 function selectRate(rate: ShippingRate) {
-  selected.value = rate.carrierId
+  selected.value = rate.carrier_id
   emit('select', rate)
 }
 
@@ -51,7 +45,7 @@ function formatPrice(n: number) {
   <div class="space-y-3">
     <!-- Skeleton loader -->
     <template v-if="loading">
-      <div v-for="i in 3" :key="i" class="h-16 bg-[color:var(--color-warm-beige)] animate-pulse" />
+      <div v-for="i in 2" :key="i" class="h-16 bg-[color:var(--color-warm-beige)] animate-pulse" />
     </template>
 
     <!-- Error -->
@@ -64,31 +58,31 @@ function formatPrice(n: number) {
     <label
       v-else
       v-for="rate in rates"
-      :key="rate.carrierId"
+      :key="rate.carrier_id"
       class="flex items-center justify-between p-4 border cursor-pointer transition-colors duration-[var(--duration-fast)]"
-      :class="selected === rate.carrierId
+      :class="selected === rate.carrier_id
         ? 'border-[color:var(--color-obsidian)] bg-[color:var(--color-warm-beige)]'
         : 'border-[color:var(--color-border)] hover:border-[color:var(--color-border-strong)]'"
     >
       <div class="flex items-center gap-3">
         <input
           type="radio"
-          :value="rate.carrierId"
-          :checked="selected === rate.carrierId"
+          :value="rate.carrier_id"
+          :checked="selected === rate.carrier_id"
           class="accent-[color:var(--color-obsidian)]"
           @change="selectRate(rate)"
         />
         <div>
           <p class="text-[length:var(--text-small)] font-medium text-[color:var(--color-on-surface)]">
-            {{ rate.carrierName }} {{ rate.service }}
+            {{ rate.carrier_name }} {{ rate.service }}
           </p>
           <p class="text-[length:var(--text-micro)] text-[color:var(--color-border-strong)]">
-            {{ rate.estimatedDays }}–{{ rate.estimatedDays + 1 }} business days
+            {{ rate.estimated_days }}–{{ rate.estimated_days + 2 }} business days
           </p>
         </div>
       </div>
       <p class="text-[length:var(--text-small)] font-medium text-[color:var(--color-on-surface)]">
-        {{ formatPrice(rate.priceUSD) }}
+        {{ formatPrice(rate.price_usd) }}
       </p>
     </label>
   </div>
