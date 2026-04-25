@@ -2,20 +2,39 @@ import type { Product } from './types'
 
 // ─── Real Vantier color palette ───────────────────────────────────────────────
 export const COLOR_BG: Record<string, string> = {
-  // Signature
+  // ── Vantier branded palette ──────────────────────────────────────────────
   'Azul Vantier':    '#869AEB',
   'Beige Verano':    '#E8E6D6',
   'Naranja Vantier': '#F2955E',
   'Blanca':          '#FFFFFF',
   'Negra':           '#000000',
-  // Polo Atelier
   'Beige Atelier':   '#C9BFA8',
   'Azul Navy':       '#202646',
-  // Essential
   'Azul Essential':  '#2D3FA6',
+  // ── Generic English names (backend DB values) ────────────────────────────
+  'Black':   '#111111',
+  'White':   '#F5F5F0',
+  'Blue':    '#2563EB',
+  'Orange':  '#EA580C',
+  'Beige':   '#D4C5A9',
+  'Red':     '#DC2626',
+  'Green':   '#16A34A',
+  'Gray':    '#9CA3AF',
+  'Grey':    '#9CA3AF',
+  'Navy':    '#1E3A5F',
+  'Purple':  '#7C3AED',
+  'Pink':    '#DB2777',
+  'Brown':   '#92400E',
+  'Yellow':  '#CA8A04',
+  'Teal':    '#0D9488',
+  'Ivory':   '#F5F0E8',
+  'Cream':   '#F0E8D8',
+  'Coral':   '#FF6B6B',
+  'Charcoal':'#374151',
 }
 
 export const COLOR_TEXT: Record<string, string> = {
+  // ── Vantier branded palette ──────────────────────────────────────────────
   'Azul Vantier':    '#FFFFFF',
   'Beige Verano':    '#000000',
   'Naranja Vantier': '#FFFFFF',
@@ -24,6 +43,13 @@ export const COLOR_TEXT: Record<string, string> = {
   'Beige Atelier':   '#000000',
   'Azul Navy':       '#FFFFFF',
   'Azul Essential':  '#FFFFFF',
+  // ── Generic English names ────────────────────────────────────────────────
+  'Black': '#FFFFFF', 'White': '#000000', 'Blue': '#FFFFFF',
+  'Orange': '#FFFFFF', 'Beige': '#000000', 'Red': '#FFFFFF',
+  'Green': '#FFFFFF', 'Navy': '#FFFFFF', 'Purple': '#FFFFFF',
+  'Pink': '#FFFFFF', 'Yellow': '#000000', 'Ivory': '#000000',
+  'Cream': '#000000', 'Coral': '#FFFFFF', 'Teal': '#FFFFFF',
+  'Gray': '#000000', 'Grey': '#000000', 'Charcoal': '#FFFFFF',
 }
 
 export const MOCK_PRODUCTS: Product[] = [

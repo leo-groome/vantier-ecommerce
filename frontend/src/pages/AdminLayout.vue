@@ -166,7 +166,7 @@ async function clearAuth() {
         <template v-for="group in navGroups" :key="group.label">
           <!-- Group label -->
           <p
-            v-if="!isCompact"
+            v-if="!isCompact && group.label"
             class="px-4 pt-4 pb-1.5 font-bold uppercase select-none transition-opacity duration-300"
             style="font-size: 0.55rem; color: var(--admin-text-secondary); opacity: 0.6; letter-spacing: 0.15em;"
           >{{ group.label }}</p>
@@ -175,8 +175,8 @@ async function clearAuth() {
             v-for="item in group.items"
             :key="item.to"
             :to="item.to"
-            class="flex items-center gap-4 mx-3 my-1.5 rounded-xl transition-all duration-150 relative overflow-hidden"
-            :class="isCompact ? 'px-0 justify-center py-4' : 'px-4 py-3 hover:bg-black/[0.02]'"
+            class="flex items-center gap-4 mx-3 my-0.5 rounded-xl transition-all duration-150 relative overflow-hidden h-11"
+            :class="isCompact ? 'px-0 justify-center' : 'px-4 hover:bg-black/[0.02]'"
             :style="isActive(item.to)
               ? { background: 'rgba(201,168,76,0.08)', color: 'var(--admin-amber)', borderLeft: isCompact ? '4px solid transparent' : '4px solid var(--admin-amber)' }
               : { color: 'var(--admin-text-secondary)', borderLeft: '4px solid transparent' }"

@@ -56,10 +56,18 @@ const variantMeta = computed(() => {
 function swatchHex(color: string): string {
   const map: Record<string, string> = {
     negro: '#111111', blanco: '#f5f5f0', beige: '#d4c5a9',
-    ivory: '#f5f0e8', crema: '#f0e8d8', gris: '#9ca3af', azul: '#3b82f6',
-    vino: '#7c2d3e', verde: '#16a34a', camel: '#c19a6b',
+    ivory: '#f5f0e8', crema: '#f0e8d8', gris: '#9ca3af', azul: '#2563eb',
+    vino: '#7c2d3e', verde: '#16a34a', camel: '#c19a6b', rojo: '#dc2626',
+    naranja: '#ea580c', amarillo: '#ca8a04', morado: '#7c3aed', rosa: '#db2777',
+    cafe: '#92400e', marino: '#1e3a5f', menta: '#6ee7b7', lavanda: '#a78bfa',
+    black: '#111111', white: '#f5f5f0', gray: '#9ca3af', grey: '#9ca3af',
+    blue: '#2563eb', red: '#dc2626', orange: '#ea580c', yellow: '#ca8a04',
+    green: '#16a34a', purple: '#7c3aed', pink: '#db2777', brown: '#92400e',
+    navy: '#1e3a5f', mint: '#6ee7b7', lavender: '#a78bfa', cream: '#f0e8d8',
+    tan: '#d4c5a9', khaki: '#c3b091', coral: '#ff6b6b', teal: '#0d9488',
+    burgundy: '#7c2d3e', olive: '#6b7a2a', sand: '#d4c5a9', charcoal: '#374151',
   }
-  return map[color.toLowerCase()] ?? '#aaaaaa'
+  return map[color.toLowerCase()] ?? '#888888'
 }
 
 function formatDate(iso: string): string {
