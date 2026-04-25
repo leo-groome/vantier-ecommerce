@@ -108,9 +108,28 @@ function totalStock(p: AdminProduct) {
   return p.variants.filter(v => v.is_active).reduce((s, v) => s + v.stock_qty, 0)
 }
 
-const expanded = ref<Set<string>>(new Set())
-function toggleExpand(id: string) {
-  expanded.value.has(id) ? expanded.value.delete(id) : expanded.value.add(id)
+const SIZE_ORDER: ProductSize[] = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+
+function productColors(p: AdminProduct): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const v of p.variants) {
+    if (v.is_active && !seen.has(v.color)) { seen.add(v.color); out.push(v.color) }
+  }
+  return out
+}
+
+function findVariant(p: AdminProduct, size: ProductSize, color: string): AdminVariant | undefined {
+  return p.variants.find(v => v.is_active && v.size === size && v.color === color)
+}
+
+function swatchHex(color: string): string {
+  const map: Record<string, string> = {
+    negro: '#111111', blanco: '#f5f5f0', beige: '#d4c5a9',
+    ivory: '#f5f0e8', crema: '#f0e8d8', gris: '#9ca3af', azul: '#3b82f6',
+    vino: '#7c2d3e', verde: '#16a34a', camel: '#c19a6b',
+  }
+  return map[color.toLowerCase()] ?? '#aaaaaa'
 }
 
 // ── KPI computed ─────────────────────────────────────────────────────────────
@@ -246,158 +265,157 @@ onMounted(() => store.loadProducts())
         </button>
       </div>
 
-      <!-- Table -->
-      <div v-else class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr style="background: var(--admin-bg);">
-              <th class="px-5 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Producto / Variante</th>
-              <th class="px-5 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">SKU</th>
-              <th class="px-5 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Talla</th>
-              <th class="px-5 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Color</th>
-              <th class="px-5 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Precio</th>
-              <th class="px-5 py-3 text-right font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Costo</th>
-              <th class="px-5 py-3 text-left font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Stock</th>
-              <th class="px-5 py-3 text-center font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Estado</th>
-              <th class="px-5 py-3 text-center font-semibold uppercase tracking-wider" style="font-size: 0.62rem; color: var(--admin-text-secondary);">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="product in filtered" :key="product.id">
-              <!-- Product group row -->
-              <tr
-                class="cursor-pointer transition-colors duration-100"
-                style="background: rgba(201,168,76,0.04); border-bottom: 1px solid rgba(0,0,0,0.04);"
-                @click="toggleExpand(product.id)"
-              >
-                <td class="px-5 py-3" colspan="8">
-                  <div class="flex items-center gap-2">
-                    <svg
-                      class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200"
-                      :class="expanded.has(product.id) ? 'rotate-90' : ''"
-                      style="color: var(--admin-text-secondary);"
-                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    ><polyline points="9 18 15 12 9 6"/></svg>
-                    <svg class="w-4 h-4 flex-shrink-0" style="color: var(--admin-amber);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span class="text-[0.82rem] font-semibold" style="color: var(--admin-text-primary);">{{ product.name }}</span>
-                    <span class="text-[0.7rem]" style="color: var(--admin-text-secondary);">
-                      {{ product.variants.filter(v => v.is_active).length }} variantes · {{ LINE_LABELS[product.line] }}
-                    </span>
-                  </div>
-                </td>
-                <td class="px-5 py-3 text-center">
-                  <button
-                    class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-150"
-                    style="background: rgba(0,0,0,0.05); color: var(--admin-text-secondary);"
-                    @click.stop="showAddVariant = product.id"
-                  >
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                  </button>
-                </td>
-              </tr>
+      <!-- Product Cards (matrix layout) -->
+      <div v-else class="p-4 space-y-4">
+        <div
+          v-for="product in filtered"
+          :key="product.id"
+          class="bg-white rounded-xl overflow-hidden"
+          style="border: 1px solid var(--admin-border); box-shadow: var(--admin-card-shadow);"
+        >
+          <!-- Product header -->
+          <div
+            class="flex items-center justify-between px-5 py-3.5"
+            style="border-bottom: 1px solid var(--admin-border); background: rgba(201,168,76,0.04);"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <svg class="w-4 h-4 flex-shrink-0" style="color: var(--admin-amber);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-[0.88rem] font-semibold" style="color: var(--admin-text-primary);">{{ product.name }}</span>
+              <span
+                class="text-[0.62rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0"
+                style="background: rgba(201,168,76,0.12); color: var(--admin-amber);"
+              >{{ LINE_LABELS[product.line] }}</span>
+              <span class="text-[0.72rem] hidden sm:inline" style="color: var(--admin-text-secondary);">
+                {{ totalStock(product) }} uds · {{ product.variants.filter(v => v.is_active).length }} variantes
+              </span>
+            </div>
+            <button
+              class="flex items-center gap-1.5 text-[0.72rem] font-medium px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+              style="background: rgba(0,0,0,0.05); color: var(--admin-text-secondary);"
+              @click="showAddVariant = product.id"
+            >
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Variante
+            </button>
+          </div>
 
-              <!-- Variant rows -->
-              <template v-if="expanded.has(product.id)">
-                <tr
-                  v-for="variant in product.variants.filter(v => v.is_active)"
-                  :key="variant.id"
-                  class="transition-colors duration-100"
-                  style="border-bottom: 1px solid rgba(0,0,0,0.03);"
-                >
-                  <!-- Name -->
-                  <td class="px-5 py-2.5 pl-10 text-[0.78rem]" style="color: var(--admin-text-secondary);">
-                    <span class="opacity-40 mr-1">↳</span>{{ product.name }}
-                  </td>
-                  <!-- SKU -->
-                  <td class="px-5 py-2.5 font-mono text-[0.68rem]" style="color: var(--admin-text-secondary);">{{ variant.sku }}</td>
-                  <!-- Talla -->
-                  <td class="px-5 py-2.5 text-[0.78rem]" style="color: var(--admin-text-primary);">{{ variant.size }}</td>
-                  <!-- Color -->
-                  <td class="px-5 py-2.5 text-[0.78rem]" style="color: var(--admin-text-primary);">
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-black/10" :style="{ background: variant.color.toLowerCase() === 'negro' ? '#111' : variant.color.toLowerCase() === 'blanco' ? '#f5f5f0' : variant.color.toLowerCase() === 'beige' ? '#d4c5a9' : variant.color.toLowerCase() === 'ivory' ? '#f5f0e8' : '#aaa' }" />
-                      {{ variant.color }}
+          <!-- Size × Color matrix -->
+          <div class="overflow-x-auto p-4">
+            <table class="border-collapse">
+              <thead>
+                <tr>
+                  <th class="pr-5 pb-3 text-left text-[0.6rem] font-semibold uppercase tracking-wider" style="color: var(--admin-text-secondary); min-width: 48px;">Talla</th>
+                  <th
+                    v-for="color in productColors(product)"
+                    :key="color"
+                    class="px-2 pb-3 text-center text-[0.6rem] font-semibold uppercase tracking-wider"
+                    style="color: var(--admin-text-secondary); min-width: 96px;"
+                  >
+                    <div class="flex flex-col items-center gap-1.5">
+                      <span
+                        class="w-5 h-5 rounded-full border flex-shrink-0"
+                        :style="{ background: swatchHex(color), borderColor: 'rgba(0,0,0,0.12)' }"
+                      />
+                      {{ color }}
                     </div>
-                  </td>
-                  <!-- Precio -->
-                  <td class="px-5 py-2.5 text-right text-[0.78rem] font-medium" style="color: var(--admin-text-primary);">${{ Number(variant.price_usd).toFixed(0) }}</td>
-                  <!-- Costo -->
-                  <td class="px-5 py-2.5 text-right text-[0.75rem]" style="color: var(--admin-text-secondary);">${{ Number(variant.cost_acquisition_usd).toFixed(0) }}</td>
-                  <!-- Stock -->
-                  <td class="px-5 py-2.5 min-w-[120px]">
-                    <template v-if="editing?.variantId === variant.id">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-[0.75rem]" style="color: var(--admin-text-secondary);">{{ variant.stock_qty }} +</span>
-                        <input
-                          v-model.number="editing.draftDelta"
-                          type="number"
-                          class="w-14 text-right text-[0.78rem] border rounded px-2 py-0.5 focus:outline-none"
-                          style="border-color: var(--admin-amber); color: var(--admin-text-primary);"
-                        />
-                      </div>
-                    </template>
-                    <template v-else>
-                      <StockBar :current="variant.stock_qty" :threshold="50" />
-                    </template>
-                  </td>
-                  <!-- Estado -->
-                  <td class="px-5 py-2.5 text-center">
-                    <StatusBadge :status="variantStatus(variant.stock_qty)" />
-                  </td>
-                  <!-- Acciones -->
-                  <td class="px-5 py-2.5 text-center">
-                    <div class="flex items-center justify-center gap-1.5">
-                      <template v-if="editing?.variantId === variant.id">
-                        <button
-                          class="text-[0.7rem] px-2 py-1 rounded transition-colors"
-                          style="color: var(--admin-text-secondary);"
-                          @click="cancelEdit"
-                        >Cancelar</button>
-                        <button
-                          class="text-[0.7rem] px-2.5 py-1 rounded font-medium text-white transition-opacity disabled:opacity-50 flex items-center gap-1"
-                          style="background: var(--admin-amber);"
-                          :disabled="saving === variant.id"
-                          @click="saveStock(variant)"
-                        >
-                          <span v-if="saving === variant.id" class="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin" />
-                          Guardar
-                        </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="size in SIZE_ORDER.filter(s => product.variants.some(v => v.is_active && v.size === s))"
+                  :key="size"
+                  style="border-top: 1px solid var(--admin-border);"
+                >
+                  <td class="pr-5 py-2 font-bold text-[0.82rem]" style="color: var(--admin-text-primary);">{{ size }}</td>
+                  <td
+                    v-for="color in productColors(product)"
+                    :key="color"
+                    class="px-2 py-2 text-center"
+                  >
+                    <template v-if="findVariant(product, size, color)">
+                      <template v-if="editing?.variantId === findVariant(product, size, color)!.id">
+                        <!-- Inline stock edit -->
+                        <div class="flex flex-col items-center gap-1 py-1">
+                          <span class="text-[0.65rem]" style="color: var(--admin-text-secondary);">
+                            {{ findVariant(product, size, color)!.stock_qty }} +
+                          </span>
+                          <input
+                            v-model.number="editing.draftDelta"
+                            type="number"
+                            class="w-14 text-center text-[0.75rem] border rounded px-1 py-0.5 focus:outline-none"
+                            style="border-color: var(--admin-amber);"
+                          />
+                          <div class="flex gap-1">
+                            <button
+                              class="text-[0.62rem] px-1.5 py-0.5 rounded transition-colors"
+                              style="color: var(--admin-text-secondary);"
+                              @click="cancelEdit"
+                            >✕</button>
+                            <button
+                              class="text-[0.62rem] px-1.5 py-0.5 rounded text-white font-medium disabled:opacity-50 flex items-center gap-0.5"
+                              style="background: var(--admin-amber);"
+                              :disabled="saving === findVariant(product, size, color)!.id"
+                              @click="saveStock(findVariant(product, size, color)!)"
+                            >
+                              <span v-if="saving === findVariant(product, size, color)!.id" class="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin inline-block" />
+                              <span v-else>✓</span>
+                            </button>
+                          </div>
+                        </div>
                       </template>
                       <template v-else>
+                        <!-- Clickable cell -->
                         <button
-                          class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-150"
-                          style="background: rgba(0,0,0,0.05); color: var(--admin-text-secondary);"
-                          title="Editar stock"
-                          @click="startEdit(variant)"
+                          class="group w-full flex flex-col items-center gap-0.5 rounded-lg px-2 py-2 transition-colors duration-100"
+                          :class="variantStatus(findVariant(product, size, color)!.stock_qty) === 'critico' ? 'hover:bg-red-50'
+                                 : variantStatus(findVariant(product, size, color)!.stock_qty) === 'bajo' ? 'hover:bg-amber-50'
+                                 : 'hover:bg-green-50'"
+                          :title="`Editar stock — SKU: ${findVariant(product, size, color)!.sku}`"
+                          @click="startEdit(findVariant(product, size, color)!)"
                         >
-                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                          </svg>
-                        </button>
-                        <button
-                          class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-150"
-                          style="background: rgba(0,0,0,0.05); color: var(--admin-text-secondary);"
-                          title="Imágenes"
-                          @click="showImages = { productId: product.id, variant }"
-                        >
-                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                          </svg>
+                          <span
+                            class="text-[0.95rem] font-bold tabular-nums leading-none"
+                            :style="variantStatus(findVariant(product, size, color)!.stock_qty) === 'critico'
+                              ? { color: 'var(--status-crit-text)' }
+                              : variantStatus(findVariant(product, size, color)!.stock_qty) === 'bajo'
+                                ? { color: 'var(--status-warn-text)' }
+                                : { color: 'var(--status-ok-text)' }"
+                          >{{ findVariant(product, size, color)!.stock_qty }}</span>
+                          <span class="text-[0.62rem] tabular-nums" style="color: var(--admin-text-secondary);">
+                            ${{ Number(findVariant(product, size, color)!.price_usd).toFixed(0) }}
+                          </span>
+                          <button
+                            v-if="findVariant(product, size, color)!.images.length > 0"
+                            class="text-[0.58rem] opacity-40 group-hover:opacity-80 transition-opacity mt-0.5 flex items-center gap-0.5"
+                            style="color: var(--admin-amber);"
+                            title="Ver imágenes"
+                            @click.stop="showImages = { productId: product.id, variant: findVariant(product, size, color)! }"
+                          >
+                            <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                              <circle cx="8.5" cy="8.5" r="1.5"/>
+                              <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            {{ findVariant(product, size, color)!.images.length }}
+                          </button>
+                          <span class="text-[0.55rem] uppercase tracking-wider opacity-0 group-hover:opacity-60 transition-opacity" style="color: var(--admin-text-secondary);">editar</span>
                         </button>
                       </template>
-                    </div>
+                    </template>
+                    <template v-else>
+                      <span class="text-[0.75rem]" style="color: rgba(0,0,0,0.15);">—</span>
+                    </template>
                   </td>
                 </tr>
-              </template>
-            </template>
-          </tbody>
-        </table>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>

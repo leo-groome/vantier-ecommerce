@@ -6,9 +6,11 @@ import AdminButton from '@features/admin/components/shared/AdminButton.vue'
 import AdminFilterBar from '@features/admin/components/shared/AdminFilterBar.vue'
 import type { AdminStatus } from '@features/admin/components/shared/StatusBadge.vue'
 import { useAdminOrdersStore } from '../store'
+import { useAdminInventoryStore } from '@features/admin/inventory/store'
 import type { AdminOrder, OrderStatus } from '../types'
 
 const store = useAdminOrdersStore()
+const inventory = useAdminInventoryStore()
 
 const STATUS_MAP: Record<OrderStatus, AdminStatus> = {
   pending:    'pendiente',
@@ -22,11 +24,42 @@ const search         = ref('')
 const statusFilter   = ref<OrderStatus | 'all'>('all')
 const selectedOrder  = ref<AdminOrder | null>(null)
 const updatingStatus = ref<string | null>(null)
+const generatingLabel = ref(false)
 
 const STATUS_OPTIONS: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 const STATUS_LABELS: Record<OrderStatus | 'all', string> = {
   all: 'Todas', pending: 'Pendientes', processing: 'En proceso',
   shipped: 'Enviadas', delivered: 'Entregadas', cancelled: 'Canceladas',
+}
+
+// Stepper: linear flow (cancelled is separate)
+interface FlowStep { status: OrderStatus; label: string; icon: string }
+const FLOW_STEPS: FlowStep[] = [
+  { status: 'pending',    label: 'Pendiente',  icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { status: 'processing', label: 'En Proceso', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+  { status: 'shipped',    label: 'Enviado',    icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
+  { status: 'delivered',  label: 'Entregado',  icon: 'M5 13l4 4L19 7' },
+]
+const STEP_INDEX: Record<OrderStatus, number> = {
+  pending: 0, processing: 1, shipped: 2, delivered: 3, cancelled: -1,
+}
+
+// Variant lookup: variantId → { productName, size, color }
+const variantMeta = computed(() => {
+  const map = new Map<string, { productName: string; size: string; color: string }>()
+  for (const p of inventory.products)
+    for (const v of p.variants)
+      map.set(v.id, { productName: p.name, size: v.size, color: v.color })
+  return map
+})
+
+function swatchHex(color: string): string {
+  const map: Record<string, string> = {
+    negro: '#111111', blanco: '#f5f5f0', beige: '#d4c5a9',
+    ivory: '#f5f0e8', crema: '#f0e8d8', gris: '#9ca3af', azul: '#3b82f6',
+    vino: '#7c2d3e', verde: '#16a34a', camel: '#c19a6b',
+  }
+  return map[color.toLowerCase()] ?? '#aaaaaa'
 }
 
 function formatDate(iso: string): string {
@@ -77,7 +110,19 @@ async function updateStatus(order: AdminOrder, status: OrderStatus) {
   updatingStatus.value = null
 }
 
-onMounted(() => store.loadOrders())
+async function requestLabel(order: AdminOrder) {
+  generatingLabel.value = true
+  const url = await store.requestShippingLabel(order.id)
+  if (url && selectedOrder.value?.id === order.id) {
+    selectedOrder.value = store.orders.find(o => o.id === order.id) ?? null
+  }
+  generatingLabel.value = false
+}
+
+onMounted(() => {
+  store.loadOrders()
+  if (!inventory.products.length) inventory.loadProducts()
+})
 </script>
 
 <template>
@@ -218,10 +263,92 @@ onMounted(() => store.loadOrders())
           </div>
 
           <div class="flex-1 p-6 space-y-6">
-            <!-- Status + date -->
-            <div class="flex items-center justify-between">
-              <StatusBadge :status="STATUS_MAP[selectedOrder.status]" />
-              <p class="text-[0.75rem]" style="color: var(--admin-text-secondary);">{{ formatDate(selectedOrder.created_at) }}</p>
+            <!-- Visual stepper -->
+            <div>
+              <div class="flex items-start justify-between relative">
+                <!-- connector line -->
+                <div class="absolute top-[18px] h-[1.5px] z-0" style="background: var(--admin-border); left: 32px; right: 32px;" />
+                <template v-for="(step, idx) in FLOW_STEPS" :key="step.status">
+                  <button
+                    class="flex flex-col items-center gap-1.5 relative z-10 flex-1 transition-opacity"
+                    :class="selectedOrder.status === 'cancelled' || (idx <= STEP_INDEX[selectedOrder.status] && selectedOrder.status !== step.status) ? 'cursor-default' : idx > STEP_INDEX[selectedOrder.status] && selectedOrder.status !== 'cancelled' ? 'cursor-pointer hover:opacity-80' : 'cursor-default'"
+                    :disabled="updatingStatus === selectedOrder.id"
+                    @click="idx > STEP_INDEX[selectedOrder.status] && selectedOrder.status !== 'cancelled' ? updateStatus(selectedOrder!, step.status) : undefined"
+                    :title="idx > STEP_INDEX[selectedOrder.status] && selectedOrder.status !== 'cancelled' ? `Avanzar a ${step.label}` : step.label"
+                  >
+                    <div
+                      class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                      :style="selectedOrder.status === step.status
+                        ? { background: 'var(--admin-amber)', boxShadow: '0 0 0 3px rgba(201,168,76,0.25)' }
+                        : idx < STEP_INDEX[selectedOrder.status]
+                          ? { background: 'var(--admin-text-primary)' }
+                          : { background: 'rgba(0,0,0,0.08)' }"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        :style="{ color: idx <= STEP_INDEX[selectedOrder.status] ? '#fff' : 'var(--admin-text-secondary)' }"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      >
+                        <path :d="step.icon" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <span
+                      class="text-[0.58rem] font-semibold uppercase tracking-wider text-center leading-tight"
+                      :style="selectedOrder.status === step.status
+                        ? { color: 'var(--admin-amber)' }
+                        : idx < STEP_INDEX[selectedOrder.status]
+                          ? { color: 'var(--admin-text-primary)' }
+                          : { color: 'var(--admin-text-secondary)', opacity: '0.45' }"
+                    >{{ step.label }}</span>
+                  </button>
+                </template>
+              </div>
+
+              <!-- Date + cancelled badge / cancel button -->
+              <div class="flex items-center justify-between mt-4">
+                <p class="text-[0.72rem]" style="color: var(--admin-text-secondary);">{{ formatDate(selectedOrder.created_at) }}</p>
+                <StatusBadge v-if="selectedOrder.status === 'cancelled'" status="inactivo" />
+                <button
+                  v-else-if="selectedOrder.status !== 'delivered'"
+                  class="text-[0.68rem] font-medium px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+                  style="border: 1.5px solid #F87171; color: #B91C1C;"
+                  :disabled="updatingStatus === selectedOrder.id"
+                  @click="updateStatus(selectedOrder!, 'cancelled')"
+                >Cancelar orden</button>
+              </div>
+            </div>
+
+            <!-- Shipping label -->
+            <div
+              class="flex items-center justify-between rounded-xl px-4 py-3"
+              style="background: var(--admin-bg); border: 1px solid var(--admin-border);"
+            >
+              <div>
+                <p class="text-[0.65rem] font-semibold uppercase tracking-wider" style="color: var(--admin-text-secondary);">Etiqueta de Envío</p>
+                <template v-if="selectedOrder.envia_label_url">
+                  <p class="text-[0.72rem] font-mono mt-0.5" style="color: var(--admin-text-primary);">{{ selectedOrder.carrier_tracking_number }}</p>
+                </template>
+                <p v-else class="text-[0.72rem] mt-0.5" style="color: var(--admin-text-secondary);">Sin etiqueta generada</p>
+              </div>
+              <template v-if="selectedOrder.envia_label_url">
+                <a
+                  :href="selectedOrder.envia_label_url"
+                  target="_blank"
+                  class="text-[0.72rem] font-semibold px-3 py-1.5 rounded-lg flex-shrink-0"
+                  style="background: var(--admin-amber); color: #fff;"
+                >Ver PDF →</a>
+              </template>
+              <template v-else>
+                <button
+                  class="text-[0.72rem] font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 disabled:opacity-50 flex items-center gap-1.5 transition-opacity"
+                  style="background: var(--admin-text-primary); color: #fff;"
+                  :disabled="generatingLabel || selectedOrder.status === 'pending' || selectedOrder.status === 'cancelled'"
+                  @click="requestLabel(selectedOrder!)"
+                >
+                  <span v-if="generatingLabel" class="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                  {{ generatingLabel ? 'Generando…' : 'Generar Etiqueta' }}
+                </button>
+              </template>
             </div>
 
             <!-- Items -->
@@ -229,15 +356,34 @@ onMounted(() => store.loadOrders())
               <p class="text-[0.65rem] font-semibold uppercase tracking-wider mb-3" style="color: var(--admin-text-secondary);">Artículos ({{ totalItems(selectedOrder) }} pzas)</p>
               <div class="space-y-2">
                 <div
-                  v-for="(item, i) in selectedOrder.items"
+                  v-for="item in selectedOrder.items"
                   :key="item.id"
-                  class="flex items-center justify-between text-[0.78rem]"
+                  class="flex items-center justify-between text-[0.78rem] rounded-lg px-3 py-2.5"
+                  style="background: var(--admin-bg);"
                 >
-                  <div>
-                    <p class="font-medium" style="color: var(--admin-text-primary);">Artículo #{{ i + 1 }}</p>
-                    <p style="color: var(--admin-text-secondary);">ID: {{ item.variant_id.slice(0, 8) }}… · ×{{ item.qty }}</p>
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span
+                      v-if="variantMeta.get(item.variant_id)"
+                      class="w-3 h-3 rounded-full flex-shrink-0 border border-black/10"
+                      :style="{ background: swatchHex(variantMeta.get(item.variant_id)!.color) }"
+                    />
+                    <div class="min-w-0">
+                      <p class="font-medium truncate" style="color: var(--admin-text-primary);">
+                        {{ variantMeta.get(item.variant_id)?.productName ?? 'Artículo' }}
+                      </p>
+                      <p class="text-[0.7rem] truncate" style="color: var(--admin-text-secondary);">
+                        <template v-if="variantMeta.get(item.variant_id)">
+                          Talla {{ variantMeta.get(item.variant_id)!.size }} · {{ variantMeta.get(item.variant_id)!.color }} · ×{{ item.qty }}
+                        </template>
+                        <template v-else>
+                          ID: {{ item.variant_id.slice(0, 8) }}… · ×{{ item.qty }}
+                        </template>
+                      </p>
+                    </div>
                   </div>
-                  <p class="font-medium" style="color: var(--admin-text-primary);">${{ (Number(item.unit_price_usd) * item.qty).toFixed(2) }}</p>
+                  <p class="font-medium flex-shrink-0 ml-3" style="color: var(--admin-text-primary);">
+                    ${{ (Number(item.unit_price_usd) * item.qty).toFixed(2) }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -262,35 +408,11 @@ onMounted(() => store.loadOrders())
               </div>
             </div>
 
-            <!-- Tracking -->
-            <div v-if="selectedOrder.carrier_tracking_number">
-              <p class="text-[0.65rem] font-semibold uppercase tracking-wider mb-1" style="color: var(--admin-text-secondary);">Tracking</p>
-              <p class="font-mono text-[0.78rem]" style="color: var(--admin-text-primary);">{{ selectedOrder.carrier_tracking_number }}</p>
-              <a v-if="selectedOrder.envia_label_url" :href="selectedOrder.envia_label_url" target="_blank" class="text-[0.72rem] font-medium" style="color: var(--admin-amber);">Ver etiqueta →</a>
-            </div>
-
             <!-- Address -->
             <div>
               <p class="text-[0.65rem] font-semibold uppercase tracking-wider mb-2" style="color: var(--admin-text-secondary);">Dirección</p>
               <p class="text-[0.78rem] font-medium" style="color: var(--admin-text-primary);">{{ selectedOrder.shipping_address.full_name }}</p>
               <p class="text-[0.78rem]" style="color: var(--admin-text-secondary);">{{ formatAddress(selectedOrder.shipping_address) }}</p>
-            </div>
-
-            <!-- Update status -->
-            <div>
-              <p class="text-[0.65rem] font-semibold uppercase tracking-wider mb-2" style="color: var(--admin-text-secondary);">Actualizar estado</p>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="s in STATUS_OPTIONS"
-                  :key="s"
-                  class="px-3 py-1.5 text-[0.7rem] rounded-lg font-medium uppercase tracking-wider transition-all duration-150 disabled:opacity-50"
-                  :style="selectedOrder.status === s
-                    ? { background: 'var(--admin-amber)', color: '#fff', border: 'none' }
-                    : { border: '1.5px solid rgba(0,0,0,0.12)', color: 'var(--admin-text-secondary)', background: 'transparent' }"
-                  :disabled="updatingStatus === selectedOrder.id"
-                  @click="updateStatus(selectedOrder!, s)"
-                >{{ STATUS_LABELS[s] }}</button>
-              </div>
             </div>
           </div>
         </div>

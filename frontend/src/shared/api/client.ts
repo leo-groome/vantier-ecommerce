@@ -3,6 +3,7 @@ import { authClient } from '@features/auth/auth-client'
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: (import.meta.env.VITE_API_URL ?? 'http://localhost:8000') + '/api/v1',
+  timeout: 15_000,
 })
 
 // Inject a fresh Neon Auth JWT before every request.
@@ -10,7 +11,10 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(async (config) => {
   let token: string | null = null
   try {
-    const { data } = await authClient.getSession()
+    const sessionTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('session timeout')), 5_000)
+    )
+    const { data } = await Promise.race([authClient.getSession(), sessionTimeout])
     if (data) {
       token = data.session.token
       localStorage.setItem('neon_auth_token', token)

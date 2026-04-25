@@ -40,8 +40,8 @@ onMounted(() => store.loadDashboard())
   <div class="space-y-6">
 
     <!-- Quick actions -->
-    <div class="flex items-center justify-end gap-3 flex-wrap">
-      <RouterLink to="/admin/inventory">
+    <div class="flex items-center justify-end gap-3 flex-nowrap">
+      <RouterLink class="flex-shrink-0" to="/admin/inventory">
         <AdminButton variant="primary">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -49,10 +49,10 @@ onMounted(() => store.loadDashboard())
           Agregar Producto
         </AdminButton>
       </RouterLink>
-      <RouterLink to="/admin/orders">
+      <RouterLink class="flex-shrink-0" to="/admin/orders">
         <AdminButton variant="ghost">Ver Órdenes</AdminButton>
       </RouterLink>
-      <RouterLink to="/admin/discounts">
+      <RouterLink class="flex-shrink-0" to="/admin/discounts">
         <AdminButton variant="ghost">Crear Descuento</AdminButton>
       </RouterLink>
     </div>
