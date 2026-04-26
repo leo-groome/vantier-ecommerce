@@ -1,9 +1,13 @@
 """Custom exceptions and FastAPI exception handlers for Vantier backend."""
 
+import logging
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+
+logger = logging.getLogger(__name__)
 
 
 class AppException(Exception):
@@ -91,4 +95,13 @@ def register_exception_handlers(app: FastAPI) -> None:
             status.HTTP_409_CONFLICT,
             "CONFLICT",
             "A resource with conflicting unique constraints already exists.",
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error("Unhandled exception: %s | type=%s", exc, type(exc).__name__, exc_info=True)
+        return _error_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "INTERNAL_ERROR",
+            "An unexpected error occurred.",
         )

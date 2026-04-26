@@ -15,9 +15,15 @@ logger = logging.getLogger(__name__)
 def _get_stripe() -> None:
     """Configure the Stripe SDK with the secret key from settings."""
     settings = get_settings()
-    if not settings.stripe_secret_key or settings.stripe_secret_key in ("sk_test_...", "sk_live_...", ""):
+    key = settings.stripe_secret_key or ""
+    if not key or key in ("sk_test_...", "sk_live_...", ""):
         raise AppException("Stripe secret key not configured", status_code=503)
-    stripe.api_key = settings.stripe_secret_key
+    if key.startswith("rk_"):
+        raise AppException(
+            "Stripe secret key is a restricted key (rk_...) — use a full sk_test_/sk_live_ key",
+            status_code=503,
+        )
+    stripe.api_key = key
 
 
 async def create_checkout_session(
