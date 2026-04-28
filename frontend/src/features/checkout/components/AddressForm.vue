@@ -2,6 +2,8 @@
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
+import { VueTelInput } from 'vue-tel-input'
+import 'vue-tel-input/vue-tel-input.css'
 
 const emit = defineEmits<{ (e: 'submit', data: AddressData): void }>()
 
@@ -17,21 +19,35 @@ export interface AddressData {
   phone: string
 }
 
+const countries = [
+  { code: 'US', name: 'United States' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'FR', name: 'France' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'JP', name: 'Japan' }
+]
+
 const schema = toTypedSchema(
   z.object({
     firstName: z.string().min(1, 'Required'),
     lastName:  z.string().min(1, 'Required'),
-    address1:  z.string().min(1, 'Required'),
+    address1:  z.string().min(3, 'Please provide street and number'),
     address2:  z.string().optional().default(''),
     city:      z.string().min(1, 'Required'),
-    state:     z.string().min(1, 'Required'),
-    zip:       z.string().min(4, 'Invalid ZIP'),
-    country:   z.string().default('MX'),
-    phone:     z.string().min(8, 'Invalid phone'),
+    state:     z.string().min(1, 'State/Province is required'),
+    zip:       z.string().min(3, 'Invalid ZIP / Postal Code'),
+    country:   z.string().min(2, 'Please select a country'),
+    phone:     z.string().regex(/^\+\d{7,15}$/, 'Must start with + and country code (e.g. +52 o +1)'),
   })
 )
 
-const { handleSubmit, defineField, errors } = useForm({ validationSchema: schema })
+const { handleSubmit, defineField, errors } = useForm({ validationSchema: schema, initialValues: { country: 'US' } })
 
 const [firstName, firstNameAttrs] = defineField('firstName')
 const [lastName,  lastNameAttrs]  = defineField('lastName')
@@ -75,14 +91,33 @@ const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
       </div>
     </div>
 
+    <!-- Country Dropdown -->
+    <div class="space-y-1 relative">
+      <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">Country / Region</label>
+      <select
+        v-model="country"
+        v-bind="countryAttrs"
+        autocomplete="country"
+        class="w-full border border-[color:var(--color-border)] bg-transparent px-3 py-2.5 text-[length:var(--text-small)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors duration-[var(--duration-fast)] appearance-none rounded-none"
+        :class="{ 'border-red-500': errors.country }"
+      >
+        <option value="" disabled>Select Country</option>
+        <option v-for="c in countries" :key="c.code" :value="c.code">{{ c.name }}</option>
+      </select>
+      <div class="pointer-events-none absolute bottom-0 right-0 flex items-center px-3 pb-3 text-[color:var(--color-obsidian)]">
+         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+      <p v-if="errors.country" class="text-[length:var(--text-micro)] text-red-600">{{ errors.country }}</p>
+    </div>
+
     <div class="space-y-1">
-      <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">Address</label>
+      <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">Street Address</label>
       <input
         v-model="address1"
         v-bind="address1Attrs"
         type="text"
         autocomplete="address-line1"
-        placeholder="Street address"
+        placeholder="Street name and number"
         class="w-full border border-[color:var(--color-border)] bg-transparent px-3 py-2.5 text-[length:var(--text-small)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors duration-[var(--duration-fast)]"
         :class="{ 'border-red-500': errors.address1 }"
       />
@@ -90,13 +125,15 @@ const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
     </div>
 
     <div class="space-y-1">
+      <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">Apartment, suite, etc. (optional)</label>
       <input
         v-model="address2"
         v-bind="address2Attrs"
         type="text"
         autocomplete="address-line2"
-        placeholder="Apt, suite, unit (optional)"
+        placeholder="Apt, Suite, Unit, Building, etc."
         class="w-full border border-[color:var(--color-border)] bg-transparent px-3 py-2.5 text-[length:var(--text-small)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors duration-[var(--duration-fast)]"
+        :class="{ 'border-red-500': errors.address2 }"
       />
     </div>
 
@@ -114,12 +151,13 @@ const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
         <p v-if="errors.city" class="text-[length:var(--text-micro)] text-red-600">{{ errors.city }}</p>
       </div>
       <div class="space-y-1">
-        <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">State</label>
+        <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">State / Province</label>
         <input
           v-model="state"
           v-bind="stateAttrs"
           type="text"
           autocomplete="address-level1"
+          placeholder="State or Province"
           class="w-full border border-[color:var(--color-border)] bg-transparent px-3 py-2.5 text-[length:var(--text-small)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors duration-[var(--duration-fast)]"
           :class="{ 'border-red-500': errors.state }"
         />
@@ -142,20 +180,16 @@ const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
       </div>
       <div class="space-y-1">
         <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">Phone</label>
-        <input
+        <vue-tel-input
           v-model="phone"
-          v-bind="phoneAttrs"
-          type="tel"
-          autocomplete="tel"
-          class="w-full border border-[color:var(--color-border)] bg-transparent px-3 py-2.5 text-[length:var(--text-small)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors duration-[var(--duration-fast)]"
+          mode="international"
+          :inputOptions="{ placeholder: 'Include country code (+1...)', autocomplete: 'tel' }"
+          class="vantier-tel-input"
           :class="{ 'border-red-500': errors.phone }"
         />
         <p v-if="errors.phone" class="text-[length:var(--text-micro)] text-red-600">{{ errors.phone }}</p>
       </div>
     </div>
-
-    <!-- Hidden country field defaults to MX -->
-    <input v-model="country" v-bind="countryAttrs" type="hidden" />
 
     <button
       type="submit"
@@ -165,3 +199,74 @@ const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
     </button>
   </form>
 </template>
+
+<style scoped>
+/* Vantier minimal theme overrides for vue-tel-input */
+:deep(.vantier-tel-input) {
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none !important;
+  font-family: inherit;
+}
+:deep(.vantier-tel-input:focus-within) {
+  border-color: var(--color-obsidian);
+  box-shadow: none !important;
+}
+:deep(.vti__input) {
+  background: transparent;
+  padding: 0.625rem 0.75rem; /* ~ py-2.5 px-3 */
+  font-size: var(--text-small);
+  font-family: inherit;
+  color: var(--color-on-surface);
+}
+:deep(.vti__input::placeholder) {
+  color: #9ca3af; /* fallback gray */
+}
+:deep(.vti__dropdown) {
+  padding: 0 0.75rem;
+  background: transparent;
+  border-radius: 0;
+  transition: background-color var(--duration-fast);
+}
+:deep(.vti__dropdown:hover) {
+  background: var(--color-warm-beige);
+}
+/* Dropdown List Styling */
+:deep(.vti__dropdown-list) {
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1) !important;
+  margin-top: 4px;
+  background-color: var(--color-ivory) !important;
+  width: 340px !important; /* Fixed width to prevent ugly wrapping */
+  max-height: 250px !important;
+  font-family: inherit !important;
+  text-align: left;
+  z-index: 50; /* Ensure it floats above the button */
+}
+/* Scrollbar for the dropdown */
+:deep(.vti__dropdown-list::-webkit-scrollbar) {
+  width: 4px;
+}
+:deep(.vti__dropdown-list::-webkit-scrollbar-thumb) {
+  background-color: var(--color-border-strong);
+}
+/* Dropdown Items */
+:deep(.vti__dropdown-item) {
+  padding: 10px 14px !important;
+  font-size: var(--text-small) !important;
+  color: var(--color-on-surface) !important;
+  transition: background-color var(--duration-fast);
+}
+/* Strip bold from country names */
+:deep(.vti__dropdown-item strong) {
+  font-weight: 400 !important;
+}
+:deep(.vti__dropdown-item.highlighted) {
+  background-color: var(--color-warm-beige) !important;
+}
+:deep(.border-red-500) {
+  border-color: #ef4444 !important;
+}
+</style>

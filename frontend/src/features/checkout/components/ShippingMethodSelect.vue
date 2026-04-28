@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { fetchShippingRates } from '../api'
 import type { ShippingRate } from '../types'
 
-const props = defineProps<{ zip: string; itemCount: number }>()
+const props = defineProps<{ zip: string; country: string; itemCount: number }>()
 const emit = defineEmits<{ (e: 'select', rate: ShippingRate): void }>()
 
 const rates = ref<ShippingRate[]>([])
@@ -19,7 +19,7 @@ async function fetchRates() {
   loading.value = true
   error.value = false
   try {
-    rates.value = await fetchShippingRates(props.zip, props.itemCount)
+    rates.value = await fetchShippingRates(props.zip, props.country, props.itemCount)
     if (rates.value.length > 0) {
       selected.value = rates.value[0].carrier_id
       emit('select', rates.value[0])

@@ -57,7 +57,7 @@ def _stub_rates() -> list[dict]:
     ]
 
 
-async def get_shipping_rates(origin_zip: str, destination_zip: str) -> list[dict]:
+async def get_shipping_rates(origin_zip: str, destination_zip: str, destination_country: str = "US") -> list[dict]:
     """Return all available shipping options via envia.com.
 
     Each option includes carrier, service, price in USD and estimated delivery days.
@@ -67,6 +67,7 @@ async def get_shipping_rates(origin_zip: str, destination_zip: str) -> list[dict
     Args:
         origin_zip: Origin postal code (Aguascalientes warehouse).
         destination_zip: Customer destination postal code.
+        destination_country: ISO2 country code for the destination.
 
     Returns:
         List of rate dicts with keys: carrier_id, carrier_name, service,
@@ -86,7 +87,7 @@ async def get_shipping_rates(origin_zip: str, destination_zip: str) -> list[dict
             "postalCode": origin_zip,
         },
         "destination": {
-            "country": "US",
+            "country": destination_country,
             "postalCode": destination_zip,
         },
         "packages": [_PACKAGE],
@@ -133,17 +134,18 @@ async def get_shipping_rates(origin_zip: str, destination_zip: str) -> list[dict
     return result
 
 
-async def get_cheapest_rate(origin_zip: str, destination_zip: str) -> Decimal:
+async def get_cheapest_rate(origin_zip: str, destination_zip: str, destination_country: str = "US") -> Decimal:
     """Return only the cheapest rate as a Decimal (used internally by order service).
 
     Args:
         origin_zip: Origin postal code.
         destination_zip: Customer destination postal code.
+        destination_country: Customer destination country code.
 
     Returns:
         Cheapest rate in USD as Decimal.
     """
-    rates = await get_shipping_rates(origin_zip, destination_zip)
+    rates = await get_shipping_rates(origin_zip, destination_zip, destination_country)
     return Decimal(str(rates[0]["price_usd"])) if rates else Decimal("9.99")
 
 

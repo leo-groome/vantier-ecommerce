@@ -20,6 +20,7 @@ _FREE_SHIPPING_THRESHOLD = 5
 )
 async def get_shipping_rates(
     zip: str = Query(..., description="Customer destination ZIP / postal code"),
+    country: str = Query("US", description="Customer destination country code"),
     item_count: int = Query(..., ge=1, description="Total number of items in the cart"),
 ) -> list[ShippingRateResponse]:
     """Return carrier options and prices for the given destination.
@@ -35,5 +36,6 @@ async def get_shipping_rates(
     raw_rates = await envia_client.get_shipping_rates(
         origin_zip=_WAREHOUSE_ZIP,
         destination_zip=zip,
+        destination_country=country,
     )
     return [ShippingRateResponse(**r) for r in raw_rates]

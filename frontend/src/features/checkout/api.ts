@@ -38,8 +38,8 @@ export interface PaymentIntentResponse {
   amount_cents: number
 }
 
-export async function fetchShippingRates(zip: string, item_count: number): Promise<ShippingRate[]> {
-  const { data } = await apiClient.get<ShippingRate[]>('/shipping/rates', { params: { zip, item_count } })
+export async function fetchShippingRates(zip: string, country: string, item_count: number): Promise<ShippingRate[]> {
+  const { data } = await apiClient.get<ShippingRate[]>('/shipping/rates', { params: { zip, country, item_count } })
   return data
 }
 

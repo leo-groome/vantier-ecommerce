@@ -105,6 +105,7 @@ function onPaymentSuccess() {
           </h2>
           <ShippingMethodSelect
             :zip="addressData?.zip ?? ''"
+            :country="addressData?.country ?? 'US'"
             :item-count="cart.totalItems"
             @select="onShippingSelect"
           />
