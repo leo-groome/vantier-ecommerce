@@ -7,6 +7,7 @@ import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.exceptions import NotFoundException, StockInsufficientException
 from src.features.inventory.models import OperatingCost
@@ -100,6 +101,7 @@ async def get_low_stock_variants(
             ProductVariant.stock_qty <= threshold,
             ProductVariant.is_active == True,  # noqa: E712
         )
+        .options(selectinload(ProductVariant.images))
         .order_by(ProductVariant.stock_qty.asc())
     )
     return list(result.scalars().all())

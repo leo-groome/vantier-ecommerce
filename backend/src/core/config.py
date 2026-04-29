@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +58,13 @@ class Settings(BaseSettings):
             except json.JSONDecodeError:
                 return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
+
+    @model_validator(mode="after")
+    def include_frontend_url(self) -> "Settings":
+        """Ensure frontend_url is always in cors_origins (auto-covers prod Vercel URL)."""
+        if self.frontend_url not in self.cors_origins:
+            self.cors_origins = [*self.cors_origins, self.frontend_url]
+        return self
 
     @property
     def is_production(self) -> bool:

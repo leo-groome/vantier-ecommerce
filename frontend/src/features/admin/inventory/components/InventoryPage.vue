@@ -331,6 +331,21 @@ onMounted(() => store.loadProducts())
                         :style="{ background: swatchHex(color), borderColor: 'rgba(0,0,0,0.12)' }"
                       />
                       {{ color }}
+                      <!-- Image manager trigger — always visible per color column -->
+                      <button
+                        v-if="product.variants.find(v => v.is_active && v.color === color)"
+                        class="flex items-center gap-1 text-[0.6rem] font-semibold px-2 py-1 rounded-lg border transition-colors hover:opacity-80"
+                        style="color: var(--admin-amber); background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.3);"
+                        title="Gestionar imágenes"
+                        @click.stop="showImages = { productId: product.id, variant: product.variants.find(v => v.is_active && v.color === color)! }"
+                      >
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        {{ product.variants.filter(v => v.is_active && v.color === color).reduce((n, v) => n + v.images.length, 0) }}
+                      </button>
                     </div>
                   </th>
                 </tr>
@@ -379,31 +394,35 @@ onMounted(() => store.loadProducts())
                         </div>
                       </template>
                       <template v-else>
-                        <!-- Clickable cell -->
-                        <button
-                          class="group w-full flex flex-col items-center gap-0.5 rounded-lg px-2 py-2 transition-colors duration-100"
-                          :class="variantStatus(findVariant(product, size, color)!.stock_qty) === 'critico' ? 'hover:bg-red-50'
-                                 : variantStatus(findVariant(product, size, color)!.stock_qty) === 'bajo' ? 'hover:bg-amber-50'
-                                 : 'hover:bg-green-50'"
-                          :title="`Editar stock — SKU: ${findVariant(product, size, color)!.sku}`"
-                          @click="startEdit(findVariant(product, size, color)!)"
-                        >
-                          <span
-                            class="text-[0.95rem] font-bold tabular-nums leading-none"
-                            :style="variantStatus(findVariant(product, size, color)!.stock_qty) === 'critico'
-                              ? { color: 'var(--status-crit-text)' }
-                              : variantStatus(findVariant(product, size, color)!.stock_qty) === 'bajo'
-                                ? { color: 'var(--status-warn-text)' }
-                                : { color: 'var(--status-ok-text)' }"
-                          >{{ findVariant(product, size, color)!.stock_qty }}</span>
-                          <span class="text-[0.62rem] tabular-nums" style="color: var(--admin-text-secondary);">
-                            ${{ Number(findVariant(product, size, color)!.price_usd).toFixed(0) }}
-                          </span>
+                        <!-- Stock edit button + image trigger (sibling divs, no nested buttons) -->
+                        <div class="group flex flex-col items-center gap-0.5">
                           <button
-                            v-if="findVariant(product, size, color)!.images.length > 0"
-                            class="text-[0.58rem] opacity-40 group-hover:opacity-80 transition-opacity mt-0.5 flex items-center gap-0.5"
+                            class="w-full flex flex-col items-center gap-0.5 rounded-lg px-2 py-2 transition-colors duration-100"
+                            :class="variantStatus(findVariant(product, size, color)!.stock_qty) === 'critico' ? 'hover:bg-red-50'
+                                   : variantStatus(findVariant(product, size, color)!.stock_qty) === 'bajo' ? 'hover:bg-amber-50'
+                                   : 'hover:bg-green-50'"
+                            :title="`Editar stock — SKU: ${findVariant(product, size, color)!.sku}`"
+                            @click="startEdit(findVariant(product, size, color)!)"
+                          >
+                            <span
+                              class="text-[0.95rem] font-bold tabular-nums leading-none"
+                              :style="variantStatus(findVariant(product, size, color)!.stock_qty) === 'critico'
+                                ? { color: 'var(--status-crit-text)' }
+                                : variantStatus(findVariant(product, size, color)!.stock_qty) === 'bajo'
+                                  ? { color: 'var(--status-warn-text)' }
+                                  : { color: 'var(--status-ok-text)' }"
+                            >{{ findVariant(product, size, color)!.stock_qty }}</span>
+                            <span class="text-[0.62rem] tabular-nums" style="color: var(--admin-text-secondary);">
+                              ${{ Number(findVariant(product, size, color)!.price_usd).toFixed(0) }}
+                            </span>
+                            <span class="text-[0.55rem] uppercase tracking-wider opacity-0 group-hover:opacity-60 transition-opacity" style="color: var(--admin-text-secondary);">editar</span>
+                          </button>
+                          <!-- Image trigger — sibling, never nested inside button -->
+                          <button
+                            class="text-[0.58rem] flex items-center gap-0.5 transition-opacity rounded px-1"
+                            :class="findVariant(product, size, color)!.images.length > 0 ? 'opacity-80 hover:opacity-100' : 'opacity-50 hover:opacity-80'"
                             style="color: var(--admin-amber);"
-                            title="Ver imágenes"
+                            title="Gestionar imágenes"
                             @click.stop="showImages = { productId: product.id, variant: findVariant(product, size, color)! }"
                           >
                             <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -413,8 +432,7 @@ onMounted(() => store.loadProducts())
                             </svg>
                             {{ findVariant(product, size, color)!.images.length }}
                           </button>
-                          <span class="text-[0.55rem] uppercase tracking-wider opacity-0 group-hover:opacity-60 transition-opacity" style="color: var(--admin-text-secondary);">editar</span>
-                        </button>
+                        </div>
                       </template>
                     </template>
                     <template v-else>

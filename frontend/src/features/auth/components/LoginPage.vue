@@ -28,56 +28,85 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-[color:var(--color-warm-beige)]">
-    <div class="w-full max-w-sm space-y-8 px-6">
-      <!-- Brand -->
-      <div class="text-center space-y-1">
-        <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-display)] text-[color:var(--color-obsidian)] font-bold">
-          Vantier
-        </p>
-        <h1 class="text-lg font-semibold text-[color:var(--color-on-surface)] tracking-tight">
-          Sign in
-        </h1>
+  <div class="space-y-8">
+    <!-- Heading -->
+    <div class="space-y-1">
+      <h1
+        class="text-[1.6rem] font-bold tracking-tight"
+        style="color: var(--color-obsidian);"
+      >
+        Iniciar sesión
+      </h1>
+      <p
+        class="text-[0.82rem]"
+        style="color: rgba(0,0,0,0.4);"
+      >
+        Ingresa tus credenciales para acceder al panel.
+      </p>
+    </div>
+
+    <!-- Form -->
+    <form class="space-y-5" @submit.prevent="submit">
+      <div class="space-y-1.5">
+        <label
+          class="block text-[0.68rem] font-semibold uppercase tracking-wider"
+          style="color: var(--color-obsidian);"
+        >
+          Correo electrónico
+        </label>
+        <input
+          v-model="email"
+          type="email"
+          required
+          autocomplete="email"
+          placeholder="admin@vantierluxuryla.com"
+          class="w-full px-4 py-3 rounded-xl border text-[0.88rem] outline-none transition-all"
+          style="border-color: rgba(0,0,0,0.12); background: #fff; color: var(--color-obsidian);"
+          :style="{ boxShadow: 'none' }"
+          @focus="($event.target as HTMLInputElement).style.borderColor = 'var(--color-obsidian)'"
+          @blur="($event.target as HTMLInputElement).style.borderColor = 'rgba(0,0,0,0.12)'"
+        />
       </div>
 
-      <!-- Form -->
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1">
-          <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-on-surface-muted)]">
-            Email
-          </label>
-          <input
-            v-model="email"
-            type="email"
-            required
-            autocomplete="email"
-            class="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-white text-sm text-[color:var(--color-on-surface)] outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
-          />
-        </div>
-
-        <div class="space-y-1">
-          <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-on-surface-muted)]">
-            Password
-          </label>
-          <input
-            v-model="password"
-            type="password"
-            required
-            autocomplete="current-password"
-            class="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-white text-sm text-[color:var(--color-on-surface)] outline-none focus:border-[color:var(--color-obsidian)] transition-colors"
-          />
-        </div>
-
-        <p v-if="error" class="text-xs text-red-500">{{ error }}</p>
-
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full py-2.5 rounded-[var(--radius-md)] bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+      <div class="space-y-1.5">
+        <label
+          class="block text-[0.68rem] font-semibold uppercase tracking-wider"
+          style="color: var(--color-obsidian);"
         >
-          {{ loading ? 'Signing in…' : 'Sign in' }}
-        </button>
-      </form>
-    </div>
+          Contraseña
+        </label>
+        <input
+          v-model="password"
+          type="password"
+          required
+          autocomplete="current-password"
+          placeholder="••••••••"
+          class="w-full px-4 py-3 rounded-xl border text-[0.88rem] outline-none transition-all"
+          style="border-color: rgba(0,0,0,0.12); background: #fff; color: var(--color-obsidian);"
+          @focus="($event.target as HTMLInputElement).style.borderColor = 'var(--color-obsidian)'"
+          @blur="($event.target as HTMLInputElement).style.borderColor = 'rgba(0,0,0,0.12)'"
+        />
+      </div>
+
+      <p v-if="error" class="text-[0.78rem] text-red-500 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ error }}
+      </p>
+
+      <button
+        type="submit"
+        :disabled="loading"
+        class="w-full py-3 rounded-xl text-[0.75rem] font-bold uppercase tracking-widest transition-all disabled:opacity-50"
+        style="background: var(--color-obsidian); color: #fff;"
+      >
+        <span v-if="loading" class="inline-flex items-center gap-2">
+          <span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          Ingresando…
+        </span>
+        <span v-else>Ingresar</span>
+      </button>
+    </form>
   </div>
 </template>

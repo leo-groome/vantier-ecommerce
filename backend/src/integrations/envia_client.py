@@ -351,7 +351,15 @@ async def create_shipment(order_id: str, address_data: dict, carrier: str = "fed
             resp.raise_for_status()
         except httpx.HTTPStatusError as exc:
             logger.error("envia.com label API error %s: %s", exc.response.status_code, exc.response.text)
-            raise AppException(f"Label generation failed ({exc.response.status_code})", status_code=502) from exc
+            try:
+                err_body = exc.response.json()
+                err_msg = err_body.get("message") or err_body.get("error") or exc.response.text
+            except Exception:
+                err_msg = exc.response.text or f"HTTP {exc.response.status_code}"
+            raise AppException(
+                f"envia.com: {err_msg}",
+                status_code=502,
+            ) from exc
         except httpx.RequestError as exc:
             logger.error("envia.com network error: %s", exc)
             raise AppException("Shipping provider unreachable", status_code=502) from exc
