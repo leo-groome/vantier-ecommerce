@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { fetchProducts } from '@features/products/api'
-import { MOCK_PRODUCTS } from '@features/products/mockData'
 import ProductCard from '@features/products/components/ProductCard.vue'
 import type { Product } from '@features/products/types'
 
@@ -12,9 +11,8 @@ onMounted(async () => {
   try {
     const products = await fetchProducts()
     featured.value = products.slice(0, 4)
-    if (featured.value.length === 0) featured.value = MOCK_PRODUCTS.slice(0, 4)
-  } catch {
-    featured.value = MOCK_PRODUCTS.slice(0, 4)
+  } catch (error) {
+    console.error('Failed to fetch featured products:', error)
   } finally {
     loading.value = false
   }
