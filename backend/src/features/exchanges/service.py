@@ -94,12 +94,13 @@ async def create_exchange(db: AsyncSession, data: ExchangeCreate) -> Exchange:
     await db.flush()
 
     # Fire-and-forget email notification
+    from src.core.config import get_settings
     try:
         asyncio.create_task(
             resend_client.send_exchange_notification(
                 order_id=str(data.order_id),
                 customer_email=order.customer_email,
-                admin_email="luxury@vantiersupport.com",
+                admin_email=get_settings().resend_support_email,
                 exchange_details=(
                     f"Exchange requested for variant {data.original_variant_id}. "
                     f"Notes: {data.customer_notes or 'None'}"
@@ -162,6 +163,7 @@ async def update_exchange(
 
         exchange.replacement_variant_id = data.replacement_variant_id
 
+    previous_status = exchange.status
     if data.status is not None:
         exchange.status = data.status
 
@@ -169,4 +171,21 @@ async def update_exchange(
         exchange.admin_notes = data.admin_notes
 
     await db.flush()
+
+    # Fire customer emails on key status transitions
+    if data.status is not None and data.status != previous_status:
+        order_result = await db.execute(
+            select(Order).where(Order.id == exchange.order_id)
+        )
+        order = order_result.scalar_one_or_none()
+        if order is not None:
+            if data.status == "approved":
+                await resend_client.send_exchange_approved(
+                    order.customer_email, str(exchange.order_id)
+                )
+            elif data.status == "shipped":
+                await resend_client.send_exchange_shipped(
+                    order.customer_email, str(exchange.order_id)
+                )
+
     return exchange

@@ -23,6 +23,7 @@ const guestEmail = ref('')
 const addressData = ref<AddressData | null>(null)
 const preparingPayment = ref(false)
 const prepareError = ref('')
+const shippingUnavailable = ref(false)
 
 function onAddressSubmit(data: AddressData) {
   addressData.value = data
@@ -30,7 +31,13 @@ function onAddressSubmit(data: AddressData) {
 }
 
 function onShippingSelect(rate: ShippingRate) {
+  shippingUnavailable.value = false
   checkout.shippingRate = rate
+}
+
+function onNoRates() {
+  shippingUnavailable.value = true
+  checkout.shippingRate = null
 }
 
 async function onShippingContinue() {
@@ -106,15 +113,19 @@ function onPaymentSuccess() {
           <ShippingMethodSelect
             :zip="addressData?.zip ?? ''"
             :country="addressData?.country ?? 'US'"
+            :city="addressData?.city ?? ''"
+            :state="addressData?.state ?? ''"
+            :district="addressData?.district ?? ''"
             :item-count="cart.totalItems"
             @select="onShippingSelect"
+            @no-rates="onNoRates"
           />
           <p v-if="prepareError" class="mt-3 text-[length:var(--text-micro)] text-red-600">
             {{ prepareError }}
           </p>
           <button
             class="mt-6 w-full py-4 bg-[color:var(--color-obsidian)] text-[color:var(--color-ivory)] text-[length:var(--text-small)] tracking-[var(--tracking-label)] uppercase hover:opacity-80 disabled:opacity-40 transition-opacity duration-[var(--duration-normal)] flex items-center justify-center gap-2"
-            :disabled="!checkout.shippingRate || preparingPayment"
+            :disabled="!checkout.shippingRate || preparingPayment || shippingUnavailable"
             @click="onShippingContinue"
           >
             <span

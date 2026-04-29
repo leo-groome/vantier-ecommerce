@@ -22,6 +22,9 @@ async def get_shipping_rates(
     zip: str = Query(..., description="Customer destination ZIP / postal code"),
     country: str = Query("US", description="Customer destination country code"),
     item_count: int = Query(..., ge=1, description="Total number of items in the cart"),
+    city: str = Query("", description="Customer city (improves rate accuracy)"),
+    state: str = Query("", description="Customer state/province code"),
+    district: str = Query("", description="Customer neighborhood/colonia (required for Paquetexpress in MX)"),
 ) -> list[ShippingRateResponse]:
     """Return carrier options and prices for the given destination.
 
@@ -37,5 +40,8 @@ async def get_shipping_rates(
         origin_zip=_WAREHOUSE_ZIP,
         destination_zip=zip,
         destination_country=country,
+        destination_city=city,
+        destination_state=state,
+        destination_district=district,
     )
     return [ShippingRateResponse(**r) for r in raw_rates]

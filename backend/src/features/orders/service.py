@@ -320,7 +320,11 @@ async def confirm_payment_by_intent(db: AsyncSession, payment_intent_id: str) ->
     """
     result = await db.execute(
         select(Order)
-        .options(joinedload(Order.items))
+        .options(
+            joinedload(Order.items)
+            .joinedload(OrderItem.variant)
+            .joinedload(ProductVariant.product)
+        )
         .where(Order.stripe_payment_intent_id == payment_intent_id)
     )
     order = result.unique().scalar_one_or_none()
@@ -398,7 +402,11 @@ async def _finalize_paid_order(db: AsyncSession, order: Order) -> Order:
 
     # ── Transactional emails (fire-and-forget) ───────────────────────────────
     items_summary = [
-        {"qty": int(item.qty), "name": str(item.variant_id), "price": str(item.unit_price_usd)}
+        {
+            "qty": int(item.qty),
+            "name": f"{item.variant.product.name} — {item.variant.color} / {item.variant.size}",
+            "price": str(item.unit_price_usd),
+        }
         for item in order.items
     ]
     await resend_client.send_order_confirmed(
@@ -427,7 +435,11 @@ async def confirm_payment(db: AsyncSession, checkout_session_id: str) -> Order |
     """
     result = await db.execute(
         select(Order)
-        .options(joinedload(Order.items))
+        .options(
+            joinedload(Order.items)
+            .joinedload(OrderItem.variant)
+            .joinedload(ProductVariant.product)
+        )
         .where(Order.stripe_checkout_session_id == checkout_session_id)
     )
     order = result.unique().scalar_one_or_none()
@@ -610,6 +622,14 @@ async def update_order_status(
             order.carrier_tracking_number,
             carrier="envia.com",
         )
+    elif new_status == "delivered":
+        await resend_client.send_order_delivered(order.customer_email, str(order.id))
+    elif new_status == "cancelled":
+        await resend_client.send_order_cancelled(
+            order.customer_email,
+            str(order.id),
+            was_paid=order.payment_status == "paid",
+        )
 
     return order
 
@@ -636,6 +656,15 @@ async def generate_shipping_label(db: AsyncSession, order_id: uuid.UUID) -> Orde
     order.carrier_tracking_number = tracking_number
     order.envia_shipment_id = tracking_number  # stub returns same value; prod would be distinct
     order.envia_label_url = label_url
+
+    # Auto-transition to "shipped" and notify customer
+    if order.status == "processing":
+        order.status = "shipped"
+        await resend_client.send_order_shipped(
+            order.customer_email,
+            tracking_number,
+            carrier="envia.com",
+        )
 
     await db.flush()
     return order

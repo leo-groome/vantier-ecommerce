@@ -17,6 +17,7 @@ export interface AddressData {
   zip: string
   country: string
   phone: string
+  district: string
 }
 
 const countries = [
@@ -43,7 +44,8 @@ const schema = toTypedSchema(
     state:     z.string().min(1, 'State/Province is required'),
     zip:       z.string().min(3, 'Invalid ZIP / Postal Code'),
     country:   z.string().min(2, 'Please select a country'),
-    phone:     z.string().regex(/^\+\d{7,15}$/, 'Must start with + and country code (e.g. +52 o +1)'),
+    phone:     z.string().regex(/^\+[\d\s-]{7,20}$/, 'Must start with + and country code (e.g. +52 o +1)'),
+    district:  z.string().optional().default(''),
   })
 )
 
@@ -58,6 +60,7 @@ const [state,     stateAttrs]     = defineField('state')
 const [zip,       zipAttrs]       = defineField('zip')
 const [country,   countryAttrs]   = defineField('country')
 const [phone,     phoneAttrs]     = defineField('phone')
+const [district,  districtAttrs]  = defineField('district')
 
 const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
 </script>
@@ -163,6 +166,18 @@ const onSubmit = handleSubmit((values) => emit('submit', values as AddressData))
         />
         <p v-if="errors.state" class="text-[length:var(--text-micro)] text-red-600">{{ errors.state }}</p>
       </div>
+    </div>
+
+    <!-- Colonia — only required for MX (Paquetexpress) -->
+    <div v-if="country === 'MX'" class="space-y-1">
+      <label class="block text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)]">Colonia / Neighborhood</label>
+      <input
+        v-model="district"
+        v-bind="districtAttrs"
+        type="text"
+        placeholder="e.g. Centro, Del Valle, Polanco"
+        class="w-full border border-[color:var(--color-border)] bg-transparent px-3 py-2.5 text-[length:var(--text-small)] focus:outline-none focus:border-[color:var(--color-obsidian)] transition-colors duration-[var(--duration-fast)]"
+      />
     </div>
 
     <div class="grid grid-cols-2 gap-4">

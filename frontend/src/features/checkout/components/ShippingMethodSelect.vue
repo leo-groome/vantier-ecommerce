@@ -3,13 +3,17 @@ import { ref, onMounted } from 'vue'
 import { fetchShippingRates } from '../api'
 import type { ShippingRate } from '../types'
 
-const props = defineProps<{ zip: string; country: string; itemCount: number }>()
-const emit = defineEmits<{ (e: 'select', rate: ShippingRate): void }>()
+const props = defineProps<{ zip: string; country: string; itemCount: number; city?: string; state?: string; district?: string }>()
+const emit = defineEmits<{
+  (e: 'select', rate: ShippingRate): void
+  (e: 'noRates'): void
+}>()
 
 const rates = ref<ShippingRate[]>([])
 const selected = ref<string | null>(null)
 const loading = ref(true)
 const error = ref(false)
+const noRates = ref(false)
 
 onMounted(async () => {
   await fetchRates()
@@ -18,11 +22,15 @@ onMounted(async () => {
 async function fetchRates() {
   loading.value = true
   error.value = false
+  noRates.value = false
   try {
-    rates.value = await fetchShippingRates(props.zip, props.country, props.itemCount)
+    rates.value = await fetchShippingRates(props.zip, props.country, props.itemCount, props.city, props.state, props.district)
     if (rates.value.length > 0) {
       selected.value = rates.value[0].carrier_id
       emit('select', rates.value[0])
+    } else {
+      noRates.value = true
+      emit('noRates')
     }
   } catch {
     error.value = true
@@ -52,6 +60,11 @@ function formatPrice(n: number) {
     <div v-else-if="error" class="p-4 border border-red-200 text-[length:var(--text-small)] text-red-700">
       Could not fetch shipping rates.
       <button class="underline ml-2" @click="fetchRates">Retry</button>
+    </div>
+
+    <!-- No carriers for this destination -->
+    <div v-else-if="noRates" class="p-4 border border-amber-200 text-[length:var(--text-small)] text-amber-700">
+      No shipping options available for this address. Please verify your ZIP code or try a different address.
     </div>
 
     <!-- Rate cards -->

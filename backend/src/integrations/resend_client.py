@@ -214,6 +214,133 @@ async def send_new_order_alert(order_id: str, summary: str) -> None:
     })
 
 
+async def send_order_cancelled(customer_email: str, order_id: str, was_paid: bool) -> None:
+    settings = get_settings()
+    short_id = order_id[:8].upper()
+    refund_note = (
+        "<p style=\"margin:12px 0 0;font-size:13px;color:#777;\">A refund will be issued to your original payment method within <strong>3–5 business days</strong>.</p>"
+        if was_paid else ""
+    )
+    body = f"""
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#999;">Order Cancelled</p>
+      <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#0f0f0f;">Your order has been cancelled</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#555;line-height:1.6;">We're sorry — your order has been cancelled.</p>
+      <div style="background:#f5f4f0;border:1px solid #e0ddd7;padding:16px 20px;margin:0 0 24px;">
+        <p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#999;">Order Reference</p>
+        <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#0f0f0f;font-family:monospace;">#{short_id}</p>
+      </div>
+      {refund_note}
+      <p style="margin:20px 0 0;font-size:13px;color:#777;line-height:1.6;">
+        Questions? Reply to this email or visit <a href="https://vantierluxuryla.com" style="color:#0f0f0f;">vantierluxuryla.com</a>
+      </p>
+    """
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "reply_to": settings.resend_support_email,
+        "subject": f"Your Vantier order #{short_id} has been cancelled",
+        "html": _html("Order Cancelled — Vantier", body),
+        "text": f"Order #{short_id} cancelled." + (" Refund in 3–5 business days." if was_paid else ""),
+    })
+
+
+async def send_order_delivered(customer_email: str, order_id: str) -> None:
+    settings = get_settings()
+    short_id = order_id[:8].upper()
+    body = f"""
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#999;">Delivered</p>
+      <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#0f0f0f;">Your order has been delivered</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#555;line-height:1.6;">Your Vantier order has arrived. We hope you love it.</p>
+      <div style="background:#f5f4f0;border:1px solid #e0ddd7;padding:16px 20px;margin:0 0 24px;">
+        <p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#999;">Order Reference</p>
+        <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#0f0f0f;font-family:monospace;">#{short_id}</p>
+      </div>
+      <p style="margin:0;font-size:13px;color:#777;line-height:1.6;">
+        Any issues? Reply to this email or visit <a href="https://vantierluxuryla.com" style="color:#0f0f0f;">vantierluxuryla.com</a>
+      </p>
+    """
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "reply_to": settings.resend_support_email,
+        "subject": f"Your Vantier order #{short_id} has been delivered",
+        "html": _html("Order Delivered — Vantier", body),
+        "text": f"Order #{short_id} delivered. Thank you for shopping with Vantier.",
+    })
+
+
+async def send_exchange_approved(customer_email: str, order_id: str) -> None:
+    settings = get_settings()
+    short_id = order_id[:8].upper()
+    body = f"""
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#999;">Exchange Approved</p>
+      <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#0f0f0f;">Your exchange has been approved</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#555;line-height:1.6;">
+        Great news — we've approved your exchange request for order <strong>#{short_id}</strong>.
+        Please return the original item in its original condition. Once received, your replacement will be shipped.
+      </p>
+      <p style="margin:0;font-size:13px;color:#777;line-height:1.6;">
+        Questions? Reply to this email or visit <a href="https://vantierluxuryla.com" style="color:#0f0f0f;">vantierluxuryla.com</a>
+      </p>
+    """
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "reply_to": settings.resend_support_email,
+        "subject": f"Exchange approved — Order #{short_id}",
+        "html": _html("Exchange Approved — Vantier", body),
+        "text": f"Exchange approved for order #{short_id}. Please return the original item.",
+    })
+
+
+async def send_exchange_shipped(customer_email: str, order_id: str) -> None:
+    settings = get_settings()
+    short_id = order_id[:8].upper()
+    body = f"""
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#999;">Exchange Shipped</p>
+      <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#0f0f0f;">Your replacement is on its way</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#555;line-height:1.6;">
+        Your replacement item for order <strong>#{short_id}</strong> has been shipped.
+      </p>
+      <p style="margin:0;font-size:13px;color:#777;line-height:1.6;">
+        Allow 24–48 hours for tracking to activate. Questions? Reply to this email or visit
+        <a href="https://vantierluxuryla.com" style="color:#0f0f0f;">vantierluxuryla.com</a>
+      </p>
+    """
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "reply_to": settings.resend_support_email,
+        "subject": f"Exchange replacement shipped — Order #{short_id}",
+        "html": _html("Exchange Shipped — Vantier", body),
+        "text": f"Exchange replacement shipped for order #{short_id}.",
+    })
+
+
+async def send_refund_issued(customer_email: str, order_id: str, amount_usd: str) -> None:
+    settings = get_settings()
+    short_id = order_id[:8].upper()
+    body = f"""
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#999;">Refund Issued</p>
+      <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#0f0f0f;">Your refund is on its way</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#555;line-height:1.6;">
+        A refund of <strong>${amount_usd}</strong> has been issued for order <strong>#{short_id}</strong>.
+        Please allow <strong>3–5 business days</strong> for the amount to appear on your original payment method.
+      </p>
+      <p style="margin:0;font-size:13px;color:#777;line-height:1.6;">
+        Questions? Reply to this email or visit <a href="https://vantierluxuryla.com" style="color:#0f0f0f;">vantierluxuryla.com</a>
+      </p>
+    """
+    await _post({
+        "from": f"Vantier <{settings.resend_from_email}>",
+        "to": [customer_email],
+        "reply_to": settings.resend_support_email,
+        "subject": f"Refund issued — Order #{short_id}",
+        "html": _html("Refund Issued — Vantier", body),
+        "text": f"Refund of ${amount_usd} issued for order #{short_id}. Allow 3–5 business days.",
+    })
+
+
 async def send_contact_form(sender_name: str, sender_email: str, message: str) -> None:
     settings = get_settings()
     await _post({
