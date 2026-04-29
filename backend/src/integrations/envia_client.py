@@ -32,8 +32,9 @@ _ORIGIN_STATE = "AGS"
 _ORIGIN_DISTRICT = "Centro"  # Required by Paquetexpress
 
 # Envia requires Mexico state abbreviations, not full names.
-# Maps common spellings/full names → official Envia codes.
+# Maps common spellings/full names and ISO 3166-2 short codes → official Envia codes.
 _MX_STATE_CODES: dict[str, str] = {
+    # Full names / Common names
     "aguascalientes": "AGS",
     "baja california": "BC", "baja california norte": "BC",
     "baja california sur": "BCS",
@@ -67,13 +68,55 @@ _MX_STATE_CODES: dict[str, str] = {
     "veracruz": "VER", "veracruz de ignacio de la llave": "VER",
     "yucatan": "YUC", "yucatán": "YUC",
     "zacatecas": "ZAC",
+
+    # ISO 3166-2:MX (used by Google Places API)
+    "agu": "AGS", "bcn": "BC", "bcs": "BCS", "cam": "CAMP", 
+    "chp": "CHIS", "chh": "CHIH", "cmx": "DF", "coa": "COAH", 
+    "col": "COL", "dur": "DGO", "gua": "GTO", "gro": "GRO", 
+    "hid": "HGO", "jal": "JAL", "mic": "MICH", "mor": "MOR", 
+    "nay": "NAY", "nle": "NL", "oax": "OAX", "pue": "PUE", 
+    "que": "QRO", "roo": "QROO", "slp": "SLP", "sin": "SIN", 
+    "son": "SON", "tab": "TAB", "tam": "TAMPS", "tla": "TLAX", 
+    "yuc": "YUC", "zac": "ZAC"
 }
 
+_MX_ZIP_PREFIX_TO_STATE: dict[str, str] = {
+    "01": "DF", "02": "DF", "03": "DF", "04": "DF", "05": "DF",
+    "06": "DF", "07": "DF", "08": "DF", "09": "DF", "10": "DF",
+    "11": "DF", "12": "DF", "13": "DF", "14": "DF", "15": "DF", "16": "DF",
+    "20": "AGS", "21": "BC", "22": "BC", "23": "BCS", "24": "CAMP",
+    "25": "COAH", "26": "COAH", "27": "COAH", "28": "COL",
+    "29": "CHIS", "30": "CHIS", "31": "CHIH", "32": "CHIH", "33": "CHIH",
+    "34": "DGO", "35": "DGO", "36": "GTO", "37": "GTO", "38": "GTO",
+    "39": "GRO", "40": "GRO", "41": "GRO", "42": "HGO", "43": "HGO",
+    "44": "JAL", "45": "JAL", "46": "JAL", "47": "JAL", "48": "JAL", "49": "JAL",
+    "50": "MEX", "51": "MEX", "52": "MEX", "53": "MEX", "54": "MEX",
+    "55": "MEX", "56": "MEX", "57": "MEX",
+    "58": "MICH", "59": "MICH", "60": "MICH", "61": "MICH",
+    "62": "MOR", "63": "NAY", "64": "NL", "65": "NL", "66": "NL", "67": "NL",
+    "68": "OAX", "69": "OAX", "70": "OAX", "71": "OAX",
+    "72": "PUE", "73": "PUE", "74": "PUE", "75": "PUE",
+    "76": "QRO", "77": "QROO", "78": "SLP", "79": "SLP",
+    "80": "SIN", "81": "SIN", "82": "SIN",
+    "83": "SON", "84": "SON", "85": "SON", "86": "TAB",
+    "87": "TAMPS", "88": "TAMPS", "89": "TAMPS", "90": "TLAX",
+    "91": "VER", "92": "VER", "93": "VER", "94": "VER", "95": "VER", "96": "VER",
+    "97": "YUC", "98": "ZAC", "99": "ZAC"
+}
 
-def _normalize_mx_state(state: str) -> str:
-    """Convert a Mexico state name or code to the abbreviation Envia expects."""
+def _normalize_mx_state(state: str, zip_code: str = "") -> str:
+    """Convert a Mexico state name, code, or infer from ZIP code to Envia format."""
     key = state.strip().lower()
-    return _MX_STATE_CODES.get(key, state.upper())
+    
+    if key in _MX_STATE_CODES:
+        return _MX_STATE_CODES[key]
+        
+    if zip_code and len(zip_code) == 5 and zip_code.isdigit():
+        prefix = zip_code[:2]
+        if prefix in _MX_ZIP_PREFIX_TO_STATE:
+            return _MX_ZIP_PREFIX_TO_STATE[prefix]
+            
+    return state.upper()
 
 
 def _is_configured() -> bool:
@@ -143,7 +186,7 @@ async def get_shipping_rates(
         "postalCode": destination_zip,
         "city": destination_city or "N/A",
         "state": (
-            _normalize_mx_state(destination_state)
+            _normalize_mx_state(destination_state, zip_code=destination_zip)
             if destination_country == "MX"
             else destination_state
         ),
@@ -252,7 +295,7 @@ async def create_shipment(order_id: str, address_data: dict, carrier: str = "fed
     dest_country = address_data.get("country", "US")
     dest_state = address_data.get("state", "")
     if dest_country == "MX":
-        dest_state = _normalize_mx_state(dest_state)
+        dest_state = _normalize_mx_state(dest_state, zip_code=address_data.get("zip", ""))
 
     # Clean customer phone: strip +, spaces, dashes; keep digits only (max 15)
     raw_phone = address_data.get("phone") or ""
