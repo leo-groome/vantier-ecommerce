@@ -227,13 +227,14 @@ async def get_cheapest_rate(origin_zip: str, destination_zip: str, destination_c
     return Decimal(str(rates[0]["price_usd"])) if rates else Decimal("9.99")
 
 
-async def create_shipment(order_id: str, address_data: dict) -> tuple[str, str]:
+async def create_shipment(order_id: str, address_data: dict, carrier: str = "fedex") -> tuple[str, str]:
     """Generate a shipping label via envia.com.
 
     Args:
         order_id: Internal order UUID (used as reference in the shipment).
         address_data: JSONB shipping address dict with keys:
-            full_name, line1, city, state, zip, country.
+            full_name, line1, city, state, zip, country, district (optional), phone (optional).
+        carrier: Envia carrier code (fedex, dhl, ups, paquetexpress).
 
     Returns:
         Tuple of (tracking_number, label_url).
@@ -246,6 +247,17 @@ async def create_shipment(order_id: str, address_data: dict) -> tuple[str, str]:
         return ("MOCK_TRK_" + order_id[:8], "https://envia.mock/label/" + order_id)
 
     settings = get_settings()
+
+    # Normalize destination state for Mexico
+    dest_country = address_data.get("country", "US")
+    dest_state = address_data.get("state", "")
+    if dest_country == "MX":
+        dest_state = _normalize_mx_state(dest_state)
+
+    # Clean customer phone: strip +, spaces, dashes; keep digits only (max 15)
+    raw_phone = address_data.get("phone") or ""
+    dest_phone = "".join(c for c in raw_phone if c.isdigit())[:15] or "0000000000"
+
     payload = {
         "origin": {
             "name": "Vantier",
@@ -254,9 +266,9 @@ async def create_shipment(order_id: str, address_data: dict) -> tuple[str, str]:
             "phone": "4491000000",
             "street": "Calle Principal 123",
             "number": "123",
-            "district": "Centro",
-            "city": "Aguascalientes",
-            "state": "AGS",
+            "district": _ORIGIN_DISTRICT,
+            "city": _ORIGIN_CITY,
+            "state": _ORIGIN_STATE,
             "country": _ORIGIN_COUNTRY,
             "postalCode": _ORIGIN_POSTAL_CODE,
             "reference": f"Order {order_id}",
@@ -265,16 +277,16 @@ async def create_shipment(order_id: str, address_data: dict) -> tuple[str, str]:
             "name": address_data.get("full_name", ""),
             "street": address_data.get("line1", ""),
             "number": "",
-            "district": address_data.get("city", ""),
+            "district": address_data.get("district") or address_data.get("city", ""),
             "city": address_data.get("city", ""),
-            "state": address_data.get("state", ""),
-            "country": address_data.get("country", "US"),
+            "state": dest_state,
+            "country": dest_country,
             "postalCode": address_data.get("zip", ""),
-            "phone": "0000000000",
+            "phone": dest_phone,
             "email": "",
         },
         "packages": [_PACKAGE],
-        "shipment": {"carrier": "fedex", "type": 1},
+        "shipment": {"carrier": carrier, "type": 1},
         "settings": {"printFormat": "PDF", "printSize": "LETTER"},
     }
 

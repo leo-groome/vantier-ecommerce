@@ -60,6 +60,7 @@ async function onShippingContinue() {
         zip: addr.zip,
         country: addr.country,
         phone: addr.phone || undefined,
+        district: addr.district || undefined,
       },
       discount_code: checkout.discountCode || null,
       selected_carrier_name: checkout.shippingRate.carrier_name,

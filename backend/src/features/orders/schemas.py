@@ -30,6 +30,7 @@ class ShippingAddressCreate(BaseModel):
     zip: str = Field(..., min_length=1)
     country: str = Field(..., min_length=1)
     phone: str | None = None
+    district: str | None = None  # colonia for MX, required by Paquetexpress
 
 
 class OrderCreate(BaseModel):

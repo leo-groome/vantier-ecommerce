@@ -138,7 +138,10 @@ async def create_order(
         discount_usd=discount_usd,
         total_usd=total_usd,
         is_free_shipping=is_free_shipping,
-        shipping_address=data.shipping_address.model_dump(),
+        shipping_address={
+            **data.shipping_address.model_dump(),
+            "_carrier": data.selected_carrier_name.lower().split()[0] if data.selected_carrier_name else "fedex",
+        },
         discount_code_id=discount_code_id,
     )
     db.add(order)
@@ -276,7 +279,10 @@ async def create_order_with_payment_intent(
         discount_usd=discount_usd,
         total_usd=total_usd,
         is_free_shipping=is_free_shipping,
-        shipping_address=data.shipping_address.model_dump(),
+        shipping_address={
+            **data.shipping_address.model_dump(),
+            "_carrier": data.selected_carrier_name.lower().split()[0] if data.selected_carrier_name else "fedex",
+        },
         discount_code_id=discount_code_id,
     )
     db.add(order)
@@ -649,8 +655,10 @@ async def generate_shipping_label(db: AsyncSession, order_id: uuid.UUID) -> Orde
     """
     order = await get_order(db, order_id)
 
+    # Extract carrier code stored at order creation (first word, lowercase)
+    raw_carrier = order.shipping_address.get("_carrier", "fedex")
     tracking_number, label_url = await envia_client.create_shipment(
-        str(order.id), order.shipping_address
+        str(order.id), order.shipping_address, carrier=raw_carrier
     )
 
     order.carrier_tracking_number = tracking_number
