@@ -106,6 +106,9 @@
 
 ---
 
+
+
+
 ## Phase 4 — Pantalla de Confirmación de Pedido ✅ Código completo
 
 | # | Tarea | Estado |
