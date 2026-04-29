@@ -210,6 +210,7 @@ async def get_shipping_rates(
             "destination": destination,
             "packages": [_PACKAGE],
             "shipment": {"carrier": carrier, "type": 1},
+            "settings": {"currency": "USD"},
         }
         try:
             resp = await client.post(
@@ -242,6 +243,13 @@ async def get_shipping_rates(
         carrier = str(r.get("carrier", "")).lower()
         service = str(r.get("service", r.get("serviceName", "Standard")))
         carrier_id = f"{carrier}-{service.lower().replace(' ', '-')}"
+        
+        # Envia.com might return MXN if settings are ignored; log warning if so.
+        # We requested USD in the payload settings.
+        currency = str(r.get("currency", "USD")).upper()
+        if currency != "USD":
+            logger.warning("envia.com returned price in %s instead of USD for %s", currency, carrier_id)
+            
         result.append({
             "carrier_id": carrier_id,
             "carrier_name": str(r.get("carrier", carrier)).upper(),
@@ -330,7 +338,7 @@ async def create_shipment(order_id: str, address_data: dict, carrier: str = "fed
         },
         "packages": [_PACKAGE],
         "shipment": {"carrier": carrier, "type": 1},
-        "settings": {"printFormat": "PDF", "printSize": "LETTER"},
+        "settings": {"printFormat": "PDF", "printSize": "LETTER", "currency": "USD"},
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
