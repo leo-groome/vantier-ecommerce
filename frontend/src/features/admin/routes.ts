@@ -7,6 +7,7 @@ import { purchaseRoutes } from './purchases/routes'
 import { discountRoutes } from './discounts/routes'
 import { financialsRoutes } from './financials/routes'
 import { userRoutes } from './users/routes'
+import { homepageConfigRoutes } from './homepage/routes'
 
 export const adminRoutes: RouteRecordRaw[] = [
   {
@@ -22,6 +23,7 @@ export const adminRoutes: RouteRecordRaw[] = [
       ...discountRoutes,
       ...financialsRoutes,
       ...userRoutes,
+      ...homepageConfigRoutes,
     ],
   },
 ]

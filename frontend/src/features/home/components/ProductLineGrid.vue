@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import ProductLineCard from './ProductLineCard.vue'
+import { fetchCollections, type Collection } from '@/features/home/api'
 
 const hovered = ref<number | null>(null)
+const collections = ref<Collection[]>([])
 
-const lines = [
-  { line: 'Polo Atelier' as const, subtitle: 'Structural excellence', href: '/shop' },
-  { line: 'Signature'    as const, subtitle: 'Sartorial presence',    href: '/shop' },
-  { line: 'Essential'    as const, subtitle: 'Effortless ease',       href: '/shop' },
-]
+onMounted(async () => {
+  try {
+    collections.value = await fetchCollections()
+  } catch {
+    // silently fail — section stays empty
+  }
+})
 </script>
 
 <template>
-  <section class="flex w-full overflow-hidden" style="height: 100svh;">
+  <section v-if="collections.length" class="flex w-full overflow-hidden" style="height: 100svh;">
     <div
-      v-for="(item, i) in lines"
-      :key="item.line"
+      v-for="(item, i) in collections"
+      :key="item.id"
       class="relative overflow-hidden"
       :style="{
         flex: hovered === null ? '1 1 0' : hovered === i ? '1.9 1 0' : '0.55 1 0',
@@ -25,9 +29,12 @@ const lines = [
       @mouseleave="hovered = null"
     >
       <ProductLineCard
-        :line="item.line"
-        :subtitle="item.subtitle"
-        :href="item.href"
+        :name="item.name"
+        :tagline="item.tagline"
+        :label="item.label"
+        :price_from="item.price_from"
+        :image_url="item.image_url"
+        :link_url="item.link_url"
         :active="hovered === i"
         :faded="hovered !== null && hovered !== i"
       />

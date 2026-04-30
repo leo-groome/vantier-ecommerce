@@ -72,6 +72,9 @@ def create_app() -> FastAPI:
     from src.features.shipping.router import router as shipping_router
     app.include_router(shipping_router, prefix="/api/v1/shipping", tags=["Shipping"])
 
+    from src.features.homepage.router import router as homepage_router
+    app.include_router(homepage_router, prefix="/api/v1/homepage", tags=["Homepage"])
+
     @app.get("/health", tags=["Health"])
     async def health_check() -> dict:
         """Liveness probe endpoint."""

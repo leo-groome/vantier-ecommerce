@@ -1,50 +1,27 @@
 <script setup lang="ts">
-const props = defineProps<{
-  line: 'Polo Atelier' | 'Signature' | 'Essential'
-  subtitle: string
-  href: string
+defineProps<{
+  name: string
+  tagline: string | null
+  label: string | null
+  price_from: string | null
+  image_url: string | null
+  link_url: string
   active?: boolean
   faded?: boolean
 }>()
-
-const DARK: Record<string, boolean> = {
-  'Polo Atelier': true,
-  'Signature':    false,
-  'Essential':    true,
-}
-
-const LINE_LABEL: Record<string, string> = {
-  'Polo Atelier': 'Outerwear',
-  'Signature':    'Formals',
-  'Essential':    'Casual',
-}
-
-const LINE_PRICE: Record<string, string> = {
-  'Polo Atelier': 'From $180',
-  'Signature':    'From $205',
-  'Essential':    'From $95',
-}
-
-const LINE_IMAGE: Record<string, string> = {
-  'Polo Atelier': '/images/Products/polo-atelier-jackets-stacked.jpg',
-  'Signature':    '/images/Products/signature-shirts-stacked.jpg',
-  'Essential':    '/images/Products/essential-blue-tees.jpg',
-}
-
-const dark = DARK[props.line]
 </script>
 
 <template>
   <RouterLink
-    :to="href"
+    :to="link_url"
     class="relative flex flex-col justify-end w-full h-full overflow-hidden bg-[color:var(--color-obsidian)]"
     :style="{ opacity: faded ? '0.75' : '1', transition: 'opacity 400ms ease' }"
   >
     <!-- Background photo -->
     <img
-      v-if="LINE_IMAGE[line]"
-      :src="LINE_IMAGE[line]"
-      :alt="line"
+      v-if="image_url"
+      :src="image_url"
+      :alt="name"
       class="absolute inset-0 w-full h-full object-cover"
       :style="{
         opacity: active ? '0.75' : '0.55',
@@ -69,9 +46,9 @@ const dark = DARK[props.line]
     <div class="absolute top-0 left-0 w-8 h-px bg-[color:var(--color-amber-accent)]" />
 
     <!-- Top label -->
-    <div class="absolute top-6 left-6">
+    <div v-if="label" class="absolute top-6 left-6">
       <p class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-display)] opacity-60 text-[color:var(--color-ivory)]">
-        {{ LINE_LABEL[line] }}
+        {{ label }}
       </p>
     </div>
 
@@ -87,17 +64,17 @@ const dark = DARK[props.line]
       />
 
       <h3 class="text-[length:var(--text-title)] font-semibold uppercase tracking-[var(--tracking-headline)] text-[color:var(--color-ivory)]">
-        {{ line }}
+        {{ name }}
       </h3>
 
-      <p class="text-[length:var(--text-small)] mt-1.5 opacity-65 text-[color:var(--color-ivory)]">
-        {{ subtitle }}
+      <p v-if="tagline" class="text-[length:var(--text-small)] mt-1.5 opacity-65 text-[color:var(--color-ivory)]">
+        {{ tagline }}
       </p>
 
       <!-- Price + CTA row — always visible, CTA expands when active -->
       <div class="flex items-center justify-between mt-5 overflow-hidden">
-        <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-50 text-[color:var(--color-ivory)]">
-          {{ LINE_PRICE[line] }}
+        <span v-if="price_from" class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] opacity-50 text-[color:var(--color-ivory)]">
+          {{ price_from }}
         </span>
 
         <span
