@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { ProductImage } from '../types'
 
 const props = defineProps<{ images: ProductImage[] }>()
@@ -10,6 +10,11 @@ const lightboxIndex = ref(0)
 
 const active = computed(() => props.images[activeIndex.value] ?? null)
 const lightboxImage = computed(() => props.images[lightboxIndex.value] ?? null)
+
+// Reset index when image set changes (color switch)
+watch(() => props.images, () => {
+  activeIndex.value = 0
+}, { deep: false })
 
 function selectImage(i: number) { activeIndex.value = i }
 
@@ -51,18 +56,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       class="relative overflow-hidden bg-[color:var(--color-warm-beige)] aspect-[3/4] cursor-zoom-in"
       @click="openLightbox(activeIndex)"
     >
-      <Transition name="gallery-fade" mode="out-in">
-        <img
-          v-if="active"
-          :key="activeIndex"
-          :src="active.url"
-          :alt="active.alt_text ?? ''"
-          class="w-full h-full object-cover"
-        />
-        <div v-else class="w-full h-full flex items-center justify-center">
-          <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">No image</span>
-        </div>
-      </Transition>
+      <!-- Direct img — zero opacity tricks, zero skeletons, zero transitions -->
+      <img
+        v-if="active"
+        :key="active.id"
+        :src="active.url"
+        :alt="active.alt_text ?? ''"
+        class="w-full h-full object-cover"
+      />
+
+      <!-- No image placeholder -->
+      <div v-else class="w-full h-full flex items-center justify-center">
+        <span class="text-[length:var(--text-micro)] uppercase tracking-[var(--tracking-label)] text-[color:var(--color-border-strong)]">No image</span>
+      </div>
 
       <!-- Prev / Next -->
       <template v-if="images.length > 1">
@@ -118,7 +124,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         class="fixed inset-0 z-[80] bg-black/95 flex items-center justify-center"
         @click.self="closeLightbox"
       >
-        <!-- Close -->
         <button
           class="absolute top-5 right-5 w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors duration-[var(--duration-fast)]"
           aria-label="Close lightbox"
@@ -129,18 +134,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           </svg>
         </button>
 
-        <!-- Image -->
-        <Transition name="lb-img" mode="out-in">
-          <img
-            v-if="lightboxImage"
-            :key="lightboxIndex"
-            :src="lightboxImage.url"
-            :alt="lightboxImage.alt_text ?? ''"
-            class="max-w-[90vw] max-h-[90vh] object-contain select-none"
-          />
-        </Transition>
+        <img
+          v-if="lightboxImage"
+          :key="lightboxIndex"
+          :src="lightboxImage.url"
+          :alt="lightboxImage.alt_text ?? ''"
+          class="max-w-[90vw] max-h-[90vh] object-contain select-none"
+        />
 
-        <!-- Nav arrows -->
         <template v-if="images.length > 1">
           <button
             class="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-white/50 hover:text-white border border-white/10 hover:border-white/30 transition-all duration-[var(--duration-fast)]"
@@ -158,7 +159,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           </button>
         </template>
 
-        <!-- Counter -->
         <div class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[length:var(--text-micro)] text-white/40 uppercase tracking-[var(--tracking-display)]">
           {{ lightboxIndex + 1 }} / {{ images.length }}
         </div>
@@ -168,21 +168,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 </template>
 
 <style scoped>
-.gallery-fade-enter-active,
-.gallery-fade-leave-active {
-  transition: opacity var(--duration-normal) var(--ease-luxury);
-}
-.gallery-fade-enter-from,
-.gallery-fade-leave-to { opacity: 0; }
-
-/* Lightbox */
 .lightbox-enter-active { transition: opacity 200ms ease; }
 .lightbox-leave-active { transition: opacity 150ms ease; }
 .lightbox-enter-from, .lightbox-leave-to { opacity: 0; }
-
-/* Lightbox image swap */
-.lb-img-enter-active { transition: opacity 180ms ease, transform 200ms ease; }
-.lb-img-leave-active { transition: opacity 120ms ease; }
-.lb-img-enter-from { opacity: 0; transform: scale(0.97); }
-.lb-img-leave-to   { opacity: 0; }
 </style>

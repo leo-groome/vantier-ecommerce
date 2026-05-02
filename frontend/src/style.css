@@ -123,17 +123,5 @@
   }
 }
 
-/* 
- * Temporary override: images hidden while layout is being finalized.
- * Remove when new product images are ready.
- * Logos (alt="Vantier") are excluded.
- */
-img:not([alt="Vantier"]), video {
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
 
-[class*="bg-[url"], [style*="background-image"] {
-  background-image: none !important;
-}
 
