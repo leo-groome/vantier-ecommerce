@@ -37,8 +37,10 @@ function formatPrice(n: number) {
 
 <template>
   <div class="flex gap-4 py-4 border-b border-[color:var(--color-border)] last:border-0">
-    <!-- Image placeholder (real image via product store lookup, skipped for now) -->
-    <div class="w-16 h-20 bg-[color:var(--color-warm-beige)] flex-shrink-0" />
+    <!-- Product Image -->
+    <div class="w-16 h-20 bg-[color:var(--color-warm-beige)] flex-shrink-0 overflow-hidden relative">
+      <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover" />
+    </div>
 
     <div class="flex-1 min-w-0">
       <div class="flex justify-between items-start gap-2">

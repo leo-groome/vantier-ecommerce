@@ -166,6 +166,7 @@ async function addToCart() {
     color: selectedColor.value,
     priceUSD: finalPrice.value,
     quantity: 1,
+    imageUrl: productImages.value[0]?.url,
     isPersonalized: isPersonalized.value,
     customizationPlacement: custPlacement.value,
     customizationFileUrl: custFilePreview.value,

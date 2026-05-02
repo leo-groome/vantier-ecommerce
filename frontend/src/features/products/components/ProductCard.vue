@@ -95,6 +95,7 @@ async function onQuickAdd(e: Event) {
     color: candidates[0].color,
     priceUSD: Number(candidates[0].price_usd),
     quantity: 1,
+    imageUrl: primaryImage.value?.url,
   })
   quickState.value = 'success'
   toast.show('Added to cart', 'success')
